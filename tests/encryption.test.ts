@@ -38,12 +38,12 @@ describe("Encryption Foundation", () => {
         keyManager = new MasterKeyManager();
     });
 
-    it("should initialize a new vault and generate lock data", async () => {
-        const lockData = await keyManager.initializeNewVault(password);
-        expect(lockData.salt).toBeDefined();
-        expect(lockData.iv).toBeDefined();
-        expect(lockData.encryptedMasterKey).toBeDefined();
-        expect(lockData.algo).toBe("PBKDF2-SHA256-100k-AES-GCM-256");
+    it("should initialize a new vault and generate encrypted lock blob", async () => {
+        const blob = await keyManager.initializeNewVault(password);
+        expect(typeof blob).toBe("string");
+        expect(blob.length).toBeGreaterThan(0);
+        // Blob should be valid base64 (outer AES-GCM encrypted VaultLockData)
+        expect(() => atob(blob)).not.toThrow();
         expect(keyManager.isUnlocked()).toBe(true);
     });
 

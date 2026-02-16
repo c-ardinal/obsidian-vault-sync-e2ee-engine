@@ -28,9 +28,9 @@ export interface SettingSection {
 }
 
 export interface ICryptoEngine {
-    initializeNewVault(password: string): Promise<VaultLockData>;
-    unlockVault(lockData: VaultLockData, password: string): Promise<void>;
-    updatePassword(password: string): Promise<VaultLockData>;
+    initializeNewVault(password: string): Promise<string>;
+    unlockVault(encryptedBlob: string, password: string): Promise<void>;
+    updatePassword(password: string): Promise<string>;
     isUnlocked(): boolean;
 
     encrypt(data: ArrayBuffer): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }>;

@@ -78,3 +78,22 @@ export async function hashPassword(password: string): Promise<string> {
     // consistent base64 encoding
     return btoa(String.fromCharCode(...hashArray));
 }
+
+/**
+ * Derive an outer encryption key from hashedPassword using SHA-256.
+ * Used to encrypt vault-lock file for opaque storage.
+ * Key independence: outerKey = SHA-256(hashedPassword), innerKey = PBKDF2(hashedPassword, salt)
+ */
+export async function deriveOuterKey(hashedPassword: string): Promise<CryptoKey> {
+    const hashBuffer = await window.crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(hashedPassword),
+    );
+    return await window.crypto.subtle.importKey(
+        "raw",
+        hashBuffer,
+        { name: "AES-GCM" },
+        false,
+        ["encrypt", "decrypt"],
+    );
+}
