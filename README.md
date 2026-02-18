@@ -56,6 +56,20 @@ Your cloud provider has no way to see plaintext content.
 
 ---
 
+## 🎛️ Commands (via Command Palette)
+
+Once the E2EE Engine is installed, the following commands become available in Obsidian's command palette (`Ctrl+P` / `Cmd+P`):
+
+| Command | Description |
+|---------|-------------|
+| E2EE: Start Vault Encryption | Initialize E2EE on a non-encrypted vault |
+| E2EE: Unlock Vault Encryption | Unlock a locked vault with your password |
+| E2EE: Change Encryption Password | Re-wrap master key with a new password |
+| E2EE: Show Recovery Code | Display a recovery code and key fingerprint |
+| E2EE: Recover Vault with Recovery Code | Restore vault access using a recovery code |
+
+---
+
 ## 🔒 Security Architecture
 
 ### Vault Lock
@@ -89,7 +103,7 @@ The file is not stored locally — it is located on cloud storage at:
 
 ## ⚠️ Important Notes
 
-- **Never forget your password**: There is no password recovery mechanism. If you forget your password, encrypted data cannot be decrypted.
+- **Never forget your password**: If you lose both your password and recovery code, encrypted data cannot be decrypted. Use the "Show Recovery Code" command to export a backup recovery code.
 - **Backup vault-lock.vault**: This file is essential for decryption. If lost, your data cannot be recovered.
 - **Multi-device**: All devices sharing the vault must use the same password. When E2EE is enabled on one device, others will be prompted to enter the password on next sync.
 
