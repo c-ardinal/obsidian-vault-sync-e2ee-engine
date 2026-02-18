@@ -1,6 +1,14 @@
 import { VaultLockData, ICryptoEngine, SettingSection } from "../interfaces";
 import { generateMasterKey, deriveKey, encryptData, decryptData, deriveOuterKey, hashPassword } from "./crypto-primitives";
 import {
+    isChunkedFormat as _isChunkedFormat,
+    encryptChunked as _encryptChunked,
+    decryptChunked as _decryptChunked,
+    calculateVSC2Size,
+    buildVSC2Header as _buildVSC2Header,
+    encryptChunks as _encryptChunks,
+} from "./chunked-crypto";
+import {
     E2EESetupModal,
     E2EEUnlockModal,
     E2EEPasswordChangeModal,
@@ -11,6 +19,9 @@ import { Notice } from "obsidian";
 
 export class MasterKeyManager implements ICryptoEngine {
     private masterKey: CryptoKey | null = null;
+
+    readonly ivSize = 12;
+    readonly tagSize = 16;
 
     isUnlocked(): boolean {
         return this.masterKey !== null;
@@ -97,6 +108,59 @@ export class MasterKeyManager implements ICryptoEngine {
     async decrypt(ciphertext: ArrayBuffer, iv: Uint8Array): Promise<ArrayBuffer> {
         if (!this.masterKey) throw new Error("Locked");
         return await decryptData(this.masterKey, ciphertext, iv);
+    }
+
+    async encryptToBlob(data: ArrayBuffer): Promise<ArrayBuffer> {
+        const { iv, ciphertext } = await this.encrypt(data);
+        const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
+        combined.set(iv, 0);
+        combined.set(new Uint8Array(ciphertext), iv.byteLength);
+        return combined.buffer.slice(combined.byteOffset, combined.byteOffset + combined.byteLength);
+    }
+
+    async decryptFromBlob(blob: ArrayBuffer): Promise<ArrayBuffer> {
+        if (blob.byteLength < this.ivSize) {
+            throw new Error("Encrypted data too short (missing IV).");
+        }
+        const iv = new Uint8Array(blob.slice(0, this.ivSize));
+        const ciphertext = blob.slice(this.ivSize);
+        return this.decrypt(ciphertext, iv);
+    }
+
+    getOptimalChunkSize(): number {
+        // 1 MiB (256 KiB × 4) minus IV and GCM tag overhead per chunk
+        return 1_048_576 - this.ivSize - this.tagSize;
+    }
+
+    isChunkedFormat(data: ArrayBuffer): boolean {
+        return _isChunkedFormat(data);
+    }
+
+    async encryptChunked(data: ArrayBuffer): Promise<ArrayBuffer> {
+        return _encryptChunked(data, this, this.getOptimalChunkSize());
+    }
+
+    async decryptChunked(data: ArrayBuffer): Promise<ArrayBuffer> {
+        return _decryptChunked(data, this);
+    }
+
+    calculateChunkedSize(plaintextSize: number): number {
+        return calculateVSC2Size(plaintextSize, this.getOptimalChunkSize(), this.ivSize, this.tagSize);
+    }
+
+    buildChunkedHeader(plaintextSize: number): Uint8Array {
+        const chunkSize = this.getOptimalChunkSize();
+        const totalChunks = Math.max(1, Math.ceil(plaintextSize / chunkSize));
+        return _buildVSC2Header(chunkSize, totalChunks);
+    }
+
+    async *encryptChunks(data: ArrayBuffer): AsyncGenerator<{
+        iv: Uint8Array;
+        ciphertext: ArrayBuffer;
+        index: number;
+        totalChunks: number;
+    }> {
+        yield* _encryptChunks(data, this, this.getOptimalChunkSize());
     }
 
     async exportRecoveryCode(): Promise<string> {
