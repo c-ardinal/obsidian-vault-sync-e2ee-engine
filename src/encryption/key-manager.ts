@@ -1,6 +1,12 @@
 import { VaultLockData, ICryptoEngine, SettingSection } from "../interfaces";
-import { generateMasterKey, deriveKey, encryptData, decryptData, deriveOuterKey } from "./crypto-primitives";
-import { E2EESetupModal, E2EEUnlockModal } from "../ui/modals";
+import { generateMasterKey, deriveKey, encryptData, decryptData, deriveOuterKey, hashPassword } from "./crypto-primitives";
+import {
+    E2EESetupModal,
+    E2EEUnlockModal,
+    E2EEPasswordChangeModal,
+    E2EERecoveryExportModal,
+    E2EERecoveryImportModal,
+} from "../ui/modals";
 import { Notice } from "obsidian";
 
 export class MasterKeyManager implements ICryptoEngine {
@@ -93,12 +99,53 @@ export class MasterKeyManager implements ICryptoEngine {
         return await decryptData(this.masterKey, ciphertext, iv);
     }
 
+    async exportRecoveryCode(): Promise<string> {
+        if (!this.masterKey) throw new Error("Vault is locked.");
+        const rawKey = await window.crypto.subtle.exportKey("raw", this.masterKey);
+        return btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+    }
+
+    async recoverFromCode(recoveryCode: string, newPassword: string): Promise<string> {
+        const rawBytes = Uint8Array.from(atob(recoveryCode), c => c.charCodeAt(0));
+        if (rawBytes.byteLength !== 32) throw new Error("Invalid recovery code length.");
+
+        const restoredKey = await window.crypto.subtle.importKey(
+            "raw", rawBytes, { name: "AES-GCM", length: 256 },
+            true, ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
+        );
+
+        this.masterKey = restoredKey;
+
+        const hashedPassword = await hashPassword(newPassword);
+        return this.updatePassword(hashedPassword);
+    }
+
+    async getKeyFingerprint(): Promise<string> {
+        if (!this.masterKey) throw new Error("Vault is locked.");
+        const rawKey = await window.crypto.subtle.exportKey("raw", this.masterKey);
+        const hash = await window.crypto.subtle.digest("SHA-256", rawKey);
+        return Array.from(new Uint8Array(hash).slice(0, 4))
+            .map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
     showSetupModal(plugin: any): void {
         new E2EESetupModal(plugin.app, plugin).open();
     }
 
     showUnlockModal(plugin: any): void {
         new E2EEUnlockModal(plugin.app, plugin).open();
+    }
+
+    showPasswordChangeModal(plugin: any): void {
+        new E2EEPasswordChangeModal(plugin.app, plugin).open();
+    }
+
+    showRecoveryExportModal(plugin: any): void {
+        new E2EERecoveryExportModal(plugin.app, plugin).open();
+    }
+
+    showRecoveryImportModal(plugin: any): void {
+        new E2EERecoveryImportModal(plugin.app, plugin).open();
     }
 
     getSettingsSections(plugin: any): SettingSection[] {
