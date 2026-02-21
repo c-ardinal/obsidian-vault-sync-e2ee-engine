@@ -1,7 +1,7 @@
 import { Modal, Setting, App, Notice, ButtonComponent, TextAreaComponent } from "obsidian";
 import { hashPassword } from "../encryption/crypto-primitives";
-
-const ASCII_PRINTABLE = /^[\x20-\x7E]*$/;
+import type { E2EEPluginContext, MigrationProgress } from "../interfaces";
+import { addPasswordInput, createAsciiWarning, renderStrengthIndicator } from "./password-field";
 
 /** Set text content with \n → line breaks */
 function setTextWithBreaks(el: HTMLElement, text: string): void {
@@ -11,6 +11,10 @@ function setTextWithBreaks(el: HTMLElement, text: string): void {
         if (i > 0) el.createEl("br");
         el.appendText(line);
     });
+}
+
+function formatError(e: unknown): string {
+    return e instanceof Error ? e.message : String(e);
 }
 
 /**
@@ -27,33 +31,29 @@ export class E2EESetupModal extends Modal {
     private passwordInput?: HTMLInputElement;
     private strengthIndicator?: HTMLDivElement;
     private startBtn?: ButtonComponent;
-    private asciiWarning?: HTMLDivElement;
+    private showAsciiWarning?: (visible: boolean) => void;
 
     constructor(
         app: App,
-        private plugin: any,
+        private ctx: E2EEPluginContext,
     ) {
         super(app);
-    }
-
-    private t(key: string): string {
-        return this.plugin.i18n?.(key) || key;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.createEl("h2", { text: this.t("e2eeSetupTitle") });
+        contentEl.createEl("h2", { text: this.ctx.t("e2eeSetupTitle") });
 
         const desc = contentEl.createEl("p");
-        setTextWithBreaks(desc, this.t("e2eeSetupDesc"));
+        setTextWithBreaks(desc, this.ctx.t("e2eeSetupDesc"));
 
         // Check for active or interrupted migration
-        const migrationService = this.plugin.syncManager.migrationService;
+        const { migrationService } = this.ctx;
 
         if (migrationService && migrationService.isMigrating) {
             contentEl.createEl("div", {
-                text: this.t("e2eeSetupMigratingBg"),
+                text: this.ctx.t("e2eeSetupMigratingBg"),
                 cls: "vault-sync-warning",
             });
             const p = migrationService.currentProgress;
@@ -67,48 +67,32 @@ export class E2EESetupModal extends Modal {
         this.checkInterrupted(contentEl);
 
         // Password input with show/hide toggle
-        new Setting(contentEl)
-            .setName(this.t("e2eeSetupPasswordLabel"))
-            .setDesc(this.t("e2eeSetupPasswordDesc"))
-            .addText((text) => {
-                this.passwordInput = text.inputEl;
-                text.inputEl.type = "password";
-                text.inputEl.setAttribute("autocomplete", "new-password");
-                text.onChange((v) => {
-                    // ASCII-only filter
-                    if (!ASCII_PRINTABLE.test(v)) {
-                        const filtered = v.replace(/[^\x20-\x7E]/g, "");
-                        text.setValue(filtered);
-                        this.password = filtered;
-                        this.showAsciiWarning(true);
-                    } else {
-                        this.password = v;
-                        this.showAsciiWarning(false);
-                    }
-                    this.updateButtonState();
-                    this.updateStrengthIndicator(this.password);
-                });
-            })
-            .addExtraButton((btn) => {
-                btn.setIcon("eye");
-                btn.setTooltip("Show/Hide");
-                btn.onClick(() => {
-                    if (!this.passwordInput) return;
-                    const isHidden = this.passwordInput.type === "password";
-                    this.passwordInput.type = isHidden ? "text" : "password";
-                    btn.setIcon(isHidden ? "eye-off" : "eye");
-                });
-            });
+        this.passwordInput = addPasswordInput({
+            container: contentEl,
+            t: (k) => this.ctx.t(k),
+            label: this.ctx.t("e2eeSetupPasswordLabel"),
+            descKey: "e2eeSetupPasswordDesc",
+            autocomplete: "new-password",
+            onPasswordChange: (pw) => {
+                this.password = pw;
+                this.updateButtonState();
+                if (this.strengthIndicator) {
+                    renderStrengthIndicator(
+                        this.strengthIndicator, pw,
+                        this.ctx.checkPasswordStrength, (k) => this.ctx.t(k),
+                    );
+                }
+            },
+            onAsciiViolation: (violated) => this.showAsciiWarning?.(violated),
+        });
 
         // ASCII-only warning (hidden by default)
-        this.asciiWarning = contentEl.createDiv({ cls: "vault-sync-ascii-warning" });
-        this.asciiWarning.style.cssText = "color:var(--text-error);font-size:0.85em;display:none;margin-top:-8px;margin-bottom:8px;";
-        this.asciiWarning.setText(this.t("e2eeSetupAsciiOnly"));
+        this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
 
         // Allowed characters hint
         const hint = contentEl.createDiv();
         hint.style.cssText = "color:var(--text-muted);font-size:0.8em;margin-top:-8px;margin-bottom:8px;white-space:pre-line;";
-        hint.setText(this.t("e2eeSetupPasswordHint"));
+        hint.setText(this.ctx.t("e2eeSetupPasswordHint"));
 
         // Password strength indicator
         this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
@@ -125,7 +109,7 @@ export class E2EESetupModal extends Modal {
         // Start Migration button (disabled until password >= 8 chars)
         new Setting(contentEl).addButton((btn) => {
             this.startBtn = btn;
-            btn.setButtonText(this.t("e2eeSetupStartButton"))
+            btn.setButtonText(this.ctx.t("e2eeSetupStartButton"))
                 .setCta()
                 .setDisabled(true)
                 .onClick(async () => {
@@ -142,24 +126,22 @@ export class E2EESetupModal extends Modal {
 
                     mgContainer.show();
                     btn.setDisabled(true);
-                    btn.setButtonText(this.t("e2eeSetupMigratingButton"));
+                    btn.setButtonText(this.ctx.t("e2eeSetupMigratingButton"));
                     this.startTime = Date.now();
                     this.lastLogTime = 0;
 
                     try {
                         const hashedPassword = await hashPassword(this.password);
 
-                        (this.plugin.syncManager as any).currentTrigger = "migration";
-                        await this.plugin.syncManager.notify("noticeMigrationStarted");
+                        this.ctx.setCurrentTrigger("migration");
+                        await this.ctx.notify("noticeMigrationStarted");
 
                         const adapter =
-                            await this.plugin.syncManager.migrationService.startMigration(
-                                hashedPassword,
-                            );
+                            await this.ctx.migrationService.startMigration(hashedPassword);
 
-                        await this.plugin.syncManager.migrationService.runMigration(
+                        await this.ctx.migrationService.runMigration(
                             adapter,
-                            (p: any) => {
+                            (p: MigrationProgress) => {
                                 const percent = Math.round((p.current / p.total) * 100);
                                 this.progressBar.style.width = `${percent}%`;
                                 this.statusText.setText(
@@ -191,7 +173,7 @@ export class E2EESetupModal extends Modal {
 
                                     const now = Date.now();
                                     if (now - this.lastLogTime > 10000) {
-                                        this.plugin.syncManager.log(
+                                        this.ctx.log(
                                             `Migration: ${percent}% (${p.current}/${p.total}). ${statsMsg}`,
                                             "info",
                                         );
@@ -201,35 +183,35 @@ export class E2EESetupModal extends Modal {
                             },
                         );
 
-                        this.statusText.setText(this.t("e2eeSetupFinalizing"));
+                        this.statusText.setText(this.ctx.t("e2eeSetupFinalizing"));
                         this.fileText.setText("");
-                        this.statsText.setText(this.t("e2eeSetupSwapping"));
+                        this.statsText.setText(this.ctx.t("e2eeSetupSwapping"));
 
-                        await this.plugin.syncManager.migrationService.finalizeMigration(adapter);
+                        await this.ctx.migrationService.finalizeMigration(adapter);
 
                         // Save password to SecureStorage for auto-unlock
-                        if (this.plugin.syncManager.secureStorage) {
+                        if (this.ctx.secureStorage) {
                             try {
-                                await this.plugin.syncManager.secureStorage.setExtraSecret(
+                                await this.ctx.secureStorage.setExtraSecret(
                                     "e2ee-password",
                                     hashedPassword,
                                 );
-                                await this.plugin.syncManager.log(
+                                await this.ctx.log(
                                     "E2EE Password saved to SecureStorage.",
                                     "info",
                                 );
                             } catch (err) {
                                 console.error("Failed to save password to SecureStorage", err);
-                                await this.plugin.syncManager.notify("e2eeSetupKeychainFailed");
+                                await this.ctx.notify("e2eeSetupKeychainFailed");
                             }
                         }
 
-                        this.plugin.settings.e2eeEnabled = true;
-                        await this.plugin.saveSettings();
-                        await this.plugin.syncManager.notify("noticeMigrationComplete");
+                        this.ctx.settings.e2eeEnabled = true;
+                        await this.ctx.saveSettings();
+                        await this.ctx.notify("noticeMigrationComplete");
                         this.close();
-                        this.plugin.refreshSettingsUI();
-                    } catch (e) {
+                        this.ctx.refreshSettingsUI?.();
+                    } catch (e: unknown) {
                         const closeBtn = this.modalEl.querySelector(
                             ".modal-close-button",
                         ) as HTMLElement;
@@ -241,25 +223,19 @@ export class E2EESetupModal extends Modal {
 
                         if (this.passwordInput) this.passwordInput.disabled = false;
 
-                        await this.plugin.syncManager.log(
-                            `Migration failed: ${(e as any).message || e}`,
+                        await this.ctx.log(
+                            `Migration failed: ${formatError(e)}`,
                             "error",
                         );
-                        await this.plugin.syncManager.notify("noticeMigrationFailed");
+                        await this.ctx.notify("noticeMigrationFailed");
                         console.error(e);
                         btn.setDisabled(false);
-                        btn.setButtonText(this.t("e2eeSetupStartButton"));
-                        this.statusText.setText(this.t("e2eeSetupError"));
+                        btn.setButtonText(this.ctx.t("e2eeSetupStartButton"));
+                        this.statusText.setText(this.ctx.t("e2eeSetupError"));
                         this.statsText.setText("");
                     }
                 });
         });
-    }
-
-    private showAsciiWarning(show: boolean) {
-        if (this.asciiWarning) {
-            this.asciiWarning.style.display = show ? "" : "none";
-        }
     }
 
     private updateButtonState() {
@@ -268,81 +244,37 @@ export class E2EESetupModal extends Modal {
         }
     }
 
-    private updateStrengthIndicator(password: string) {
-        if (!this.strengthIndicator) return;
-        this.strengthIndicator.empty();
-
-        const checker = this.plugin.checkPasswordStrength;
-        if (!checker || !password) return;
-
-        const result = checker(password);
-
-        // Strength bar
-        const barContainer = this.strengthIndicator.createDiv({ cls: "vault-sync-strength-bar-container" });
-        barContainer.style.cssText = "display:flex;gap:4px;margin-bottom:4px;";
-
-        const colors: Record<string, string> = {
-            weak: "var(--text-error)",
-            fair: "var(--text-warning)",
-            good: "var(--text-success)",
-            strong: "var(--interactive-accent)",
-        };
-        const segmentCount: Record<string, number> = { weak: 1, fair: 2, good: 3, strong: 4 };
-        const filled = segmentCount[result.strength] || 0;
-        const color = colors[result.strength] || "var(--text-muted)";
-
-        for (let i = 0; i < 4; i++) {
-            const seg = barContainer.createDiv();
-            seg.style.cssText = `height:4px;flex:1;border-radius:2px;background:${i < filled ? color : "var(--background-modifier-border)"};`;
-        }
-
-        // Strength label
-        const strengthKey = `passwordStrength${result.strength.charAt(0).toUpperCase() + result.strength.slice(1)}`;
-        const label = this.t(strengthKey);
-        const labelEl = this.strengthIndicator.createDiv();
-        labelEl.style.cssText = `font-size:0.85em;color:${color};`;
-        labelEl.setText(label);
-
-        // Feedback messages
-        if (result.feedback.length > 0) {
-            const feedbackEl = this.strengthIndicator.createDiv();
-            feedbackEl.style.cssText = "font-size:0.8em;color:var(--text-muted);margin-top:2px;";
-            const messages = result.feedback.map((key: string) => this.t(key));
-            feedbackEl.setText(messages.join(". "));
-        }
-    }
-
     async checkInterrupted(contentEl: HTMLElement) {
-        const migrationService = this.plugin.syncManager.migrationService;
+        const { migrationService } = this.ctx;
         if (!migrationService) return;
 
         const interrupted = await migrationService.checkForInterruptedMigration();
         if (interrupted) {
             contentEl.empty();
-            contentEl.createEl("h2", { text: this.t("e2eeInterruptedTitle") });
+            contentEl.createEl("h2", { text: this.ctx.t("e2eeInterruptedTitle") });
 
             const desc = contentEl.createEl("div", { cls: "vault-sync-warning" });
-            setTextWithBreaks(desc, this.t("e2eeInterruptedDesc"));
+            setTextWithBreaks(desc, this.ctx.t("e2eeInterruptedDesc"));
 
             new Setting(contentEl)
-                .setName(this.t("e2eeInterruptedCleanLabel"))
-                .setDesc(this.t("e2eeInterruptedCleanDesc"))
+                .setName(this.ctx.t("e2eeInterruptedCleanLabel"))
+                .setDesc(this.ctx.t("e2eeInterruptedCleanDesc"))
                 .addButton((btn) =>
                     btn
-                        .setButtonText(this.t("e2eeInterruptedResetButton"))
+                        .setButtonText(this.ctx.t("e2eeInterruptedResetButton"))
                         .setCta()
                         .onClick(async () => {
                             btn.setDisabled(true);
-                            btn.setButtonText(this.t("e2eeInterruptedCleaning"));
+                            btn.setButtonText(this.ctx.t("e2eeInterruptedCleaning"));
                             try {
                                 await migrationService.cancelMigration();
-                                await this.plugin.syncManager.notify("e2eeInterruptedDone");
+                                await this.ctx.notify("e2eeInterruptedDone");
                                 this.close();
-                            } catch (e: any) {
-                                await this.plugin.syncManager.log(
-                                    `[E2EE] Cleanup failed: ${e.message || e}`, "error",
+                            } catch (e: unknown) {
+                                await this.ctx.log(
+                                    `[E2EE] Cleanup failed: ${formatError(e)}`, "error",
                                 );
-                                new Notice(`${e.message || e}`);
+                                new Notice(formatError(e));
                             }
                         }),
                 );
@@ -360,22 +292,18 @@ export class E2EEUnlockModal extends Modal {
 
     constructor(
         app: App,
-        private plugin: any,
+        private ctx: E2EEPluginContext,
     ) {
         super(app);
-        this.autoUnlock = !!this.plugin.settings?.e2eeAutoUnlock;
-    }
-
-    private t(key: string): string {
-        return this.plugin.i18n?.(key) || key;
+        this.autoUnlock = !!this.ctx.settings?.e2eeAutoUnlock;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.createEl("h2", { text: this.t("e2eeUnlockTitle") });
+        contentEl.createEl("h2", { text: this.ctx.t("e2eeUnlockTitle") });
         new Setting(contentEl)
-            .setName(this.t("e2eeUnlockPasswordLabel"))
+            .setName(this.ctx.t("e2eeUnlockPasswordLabel"))
             .addText((text) => {
                 this.passwordInput = text.inputEl;
                 text.inputEl.type = "password";
@@ -393,38 +321,38 @@ export class E2EEUnlockModal extends Modal {
                 });
             });
         new Setting(contentEl)
-            .setName(this.t("e2eeUnlockAutoUnlock"))
+            .setName(this.ctx.t("e2eeUnlockAutoUnlock"))
             .addToggle((toggle) => {
                 toggle.setValue(this.autoUnlock);
                 toggle.onChange((v) => (this.autoUnlock = v));
             });
         new Setting(contentEl).addButton((btn) =>
             btn
-                .setButtonText(this.t("e2eeUnlockButton"))
+                .setButtonText(this.ctx.t("e2eeUnlockButton"))
                 .setCta()
                 .onClick(async () => {
                     try {
                         const blob =
-                            await this.plugin.syncManager.vaultLockService.downloadLockFile();
+                            await this.ctx.vaultLockService.downloadLockFile();
                         const hashedPassword = await hashPassword(this.password);
-                        await this.plugin.syncManager.cryptoEngine.unlockVault(
+                        await this.ctx.cryptoEngine.unlockVault(
                             blob,
                             hashedPassword,
                         );
-                        await this.plugin.syncManager.notify("e2eeUnlockSuccess");
+                        await this.ctx.notify("e2eeUnlockSuccess");
 
                         // Sync auto-unlock setting (non-critical, don't block unlock)
                         try {
-                            this.plugin.settings.e2eeAutoUnlock = this.autoUnlock;
-                            await this.plugin.saveSettings();
+                            this.ctx.settings.e2eeAutoUnlock = this.autoUnlock;
+                            await this.ctx.saveSettings();
 
-                            if (this.autoUnlock && this.plugin.syncManager.secureStorage) {
-                                await this.plugin.syncManager.secureStorage.setExtraSecret(
+                            if (this.autoUnlock && this.ctx.secureStorage) {
+                                await this.ctx.secureStorage.setExtraSecret(
                                     "e2ee-password",
                                     hashedPassword,
                                 );
-                            } else if (!this.autoUnlock && this.plugin.syncManager.secureStorage) {
-                                await this.plugin.syncManager.secureStorage.deleteExtraSecret(
+                            } else if (!this.autoUnlock && this.ctx.secureStorage) {
+                                await this.ctx.secureStorage.removeExtraSecret(
                                     "e2ee-password",
                                 );
                             }
@@ -433,9 +361,9 @@ export class E2EEUnlockModal extends Modal {
                         }
 
                         this.close();
-                        this.plugin.refreshSettingsUI?.();
+                        this.ctx.refreshSettingsUI?.();
                     } catch (e) {
-                        await this.plugin.syncManager.notify("e2eeUnlockFailed");
+                        await this.ctx.notify("e2eeUnlockFailed");
                         console.error(e);
                     }
                 }),
@@ -450,75 +378,54 @@ export class E2EEPasswordChangeModal extends Modal {
     private newPassword = "";
     private confirmPassword = "";
     private passwordInput?: HTMLInputElement;
-    private confirmInput?: HTMLInputElement;
     private strengthIndicator?: HTMLDivElement;
     private changeBtn?: ButtonComponent;
-    private asciiWarning?: HTMLDivElement;
+    private showAsciiWarning?: (visible: boolean) => void;
 
     constructor(
         app: App,
-        private plugin: any,
+        private ctx: E2EEPluginContext,
     ) {
         super(app);
-    }
-
-    private t(key: string): string {
-        return this.plugin.i18n?.(key) || key;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.createEl("h2", { text: this.t("e2eeChangePasswordTitle") });
+        contentEl.createEl("h2", { text: this.ctx.t("e2eeChangePasswordTitle") });
 
         const desc = contentEl.createEl("p");
-        setTextWithBreaks(desc, this.t("e2eeChangePasswordDesc"));
+        setTextWithBreaks(desc, this.ctx.t("e2eeChangePasswordDesc"));
 
         // New password input with show/hide toggle
-        new Setting(contentEl)
-            .setName(this.t("e2eeChangePasswordNewLabel"))
-            .addText((text) => {
-                this.passwordInput = text.inputEl;
-                text.inputEl.type = "password";
-                text.inputEl.setAttribute("autocomplete", "new-password");
-                text.onChange((v) => {
-                    if (!ASCII_PRINTABLE.test(v)) {
-                        const filtered = v.replace(/[^\x20-\x7E]/g, "");
-                        text.setValue(filtered);
-                        this.newPassword = filtered;
-                        this.showAsciiWarning(true);
-                    } else {
-                        this.newPassword = v;
-                        this.showAsciiWarning(false);
-                    }
-                    this.updateButtonState();
-                    this.updateStrengthIndicator(this.newPassword);
-                });
-            })
-            .addExtraButton((btn) => {
-                btn.setIcon("eye");
-                btn.setTooltip("Show/Hide");
-                btn.onClick(() => {
-                    if (!this.passwordInput) return;
-                    const isHidden = this.passwordInput.type === "password";
-                    this.passwordInput.type = isHidden ? "text" : "password";
-                    btn.setIcon(isHidden ? "eye-off" : "eye");
-                });
-            });
+        this.passwordInput = addPasswordInput({
+            container: contentEl,
+            t: (k) => this.ctx.t(k),
+            label: this.ctx.t("e2eeChangePasswordNewLabel"),
+            autocomplete: "new-password",
+            onPasswordChange: (pw) => {
+                this.newPassword = pw;
+                this.updateButtonState();
+                if (this.strengthIndicator) {
+                    renderStrengthIndicator(
+                        this.strengthIndicator, pw,
+                        this.ctx.checkPasswordStrength, (k) => this.ctx.t(k),
+                    );
+                }
+            },
+            onAsciiViolation: (violated) => this.showAsciiWarning?.(violated),
+        });
 
         // ASCII-only warning (hidden by default)
-        this.asciiWarning = contentEl.createDiv({ cls: "vault-sync-ascii-warning" });
-        this.asciiWarning.style.cssText = "color:var(--text-error);font-size:0.85em;display:none;margin-top:-8px;margin-bottom:8px;";
-        this.asciiWarning.setText(this.t("e2eeSetupAsciiOnly"));
+        this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
         this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
 
         // Confirm password
         new Setting(contentEl)
-            .setName(this.t("e2eeChangePasswordConfirmLabel"))
+            .setName(this.ctx.t("e2eeChangePasswordConfirmLabel"))
             .addText((text) => {
-                this.confirmInput = text.inputEl;
                 text.inputEl.type = "password";
                 text.inputEl.setAttribute("autocomplete", "new-password");
                 text.onChange((v) => {
@@ -530,43 +437,36 @@ export class E2EEPasswordChangeModal extends Modal {
         // Change Password button
         new Setting(contentEl).addButton((btn) => {
             this.changeBtn = btn;
-            btn.setButtonText(this.t("e2eeChangePasswordButton"))
+            btn.setButtonText(this.ctx.t("e2eeChangePasswordButton"))
                 .setCta()
                 .setDisabled(true)
                 .onClick(async () => {
                     btn.setDisabled(true);
                     btn.setButtonText("...");
                     try {
-                        const engine = this.plugin.syncManager.cryptoEngine;
                         const hashedPassword = await hashPassword(this.newPassword);
-                        const newBlob = await engine.updatePassword(hashedPassword);
+                        const newBlob = await this.ctx.cryptoEngine.updatePassword(hashedPassword);
 
-                        await this.plugin.syncManager.vaultLockService.uploadLockFile(newBlob);
+                        await this.ctx.vaultLockService.uploadLockFile(newBlob);
 
                         // Update saved auto-unlock password if enabled
-                        if (this.plugin.settings.e2eeAutoUnlock && this.plugin.syncManager.secureStorage) {
+                        if (this.ctx.settings.e2eeAutoUnlock && this.ctx.secureStorage) {
                             try {
-                                await this.plugin.syncManager.secureStorage.setExtraSecret(
+                                await this.ctx.secureStorage.setExtraSecret(
                                     "e2ee-password", hashedPassword,
                                 );
                             } catch (_) { /* non-critical */ }
                         }
 
-                        await this.plugin.syncManager.notify("noticeE2EEPasswordChanged");
+                        await this.ctx.notify("noticeE2EEPasswordChanged");
                         this.close();
-                    } catch (e: any) {
-                        new Notice(`Error: ${e.message || e}`);
+                    } catch (e: unknown) {
+                        new Notice(`Error: ${formatError(e)}`);
                         btn.setDisabled(false);
-                        btn.setButtonText(this.t("e2eeChangePasswordButton"));
+                        btn.setButtonText(this.ctx.t("e2eeChangePasswordButton"));
                     }
                 });
         });
-    }
-
-    private showAsciiWarning(show: boolean) {
-        if (this.asciiWarning) {
-            this.asciiWarning.style.display = show ? "" : "none";
-        }
     }
 
     private updateButtonState() {
@@ -574,44 +474,6 @@ export class E2EEPasswordChangeModal extends Modal {
             const valid = this.newPassword.length >= 8
                 && this.newPassword === this.confirmPassword;
             this.changeBtn.setDisabled(!valid);
-        }
-    }
-
-    private updateStrengthIndicator(password: string) {
-        if (!this.strengthIndicator) return;
-        this.strengthIndicator.empty();
-
-        const checker = this.plugin.checkPasswordStrength;
-        if (!checker || !password) return;
-
-        const result = checker(password);
-
-        const barContainer = this.strengthIndicator.createDiv({ cls: "vault-sync-strength-bar-container" });
-        barContainer.style.cssText = "display:flex;gap:4px;margin-bottom:4px;";
-
-        const colors: Record<string, string> = {
-            weak: "var(--text-error)", fair: "var(--text-warning)",
-            good: "var(--text-success)", strong: "var(--interactive-accent)",
-        };
-        const segmentCount: Record<string, number> = { weak: 1, fair: 2, good: 3, strong: 4 };
-        const filled = segmentCount[result.strength] || 0;
-        const color = colors[result.strength] || "var(--text-muted)";
-
-        for (let i = 0; i < 4; i++) {
-            const seg = barContainer.createDiv();
-            seg.style.cssText = `height:4px;flex:1;border-radius:2px;background:${i < filled ? color : "var(--background-modifier-border)"};`;
-        }
-
-        const strengthKey = `passwordStrength${result.strength.charAt(0).toUpperCase() + result.strength.slice(1)}`;
-        const label = this.t(strengthKey);
-        const labelEl = this.strengthIndicator.createDiv();
-        labelEl.style.cssText = `font-size:0.85em;color:${color};`;
-        labelEl.setText(label);
-
-        if (result.feedback.length > 0) {
-            const feedbackEl = this.strengthIndicator.createDiv();
-            feedbackEl.style.cssText = "font-size:0.8em;color:var(--text-muted);margin-top:2px;";
-            feedbackEl.setText(result.feedback.map((key: string) => this.t(key)).join(". "));
         }
     }
 }
@@ -622,27 +484,23 @@ export class E2EEPasswordChangeModal extends Modal {
 export class E2EERecoveryExportModal extends Modal {
     constructor(
         app: App,
-        private plugin: any,
+        private ctx: E2EEPluginContext,
     ) {
         super(app);
-    }
-
-    private t(key: string): string {
-        return this.plugin.i18n?.(key) || key;
     }
 
     async onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.createEl("h2", { text: this.t("e2eeRecoveryExportTitle") });
-        contentEl.createEl("p", { text: this.t("e2eeRecoveryExportDesc") });
+        contentEl.createEl("h2", { text: this.ctx.t("e2eeRecoveryExportTitle") });
+        contentEl.createEl("p", { text: this.ctx.t("e2eeRecoveryExportDesc") });
 
         // Warning banner
         const warningEl = contentEl.createDiv({ cls: "vault-sync-recovery-warning" });
         warningEl.style.cssText = "background:var(--background-modifier-error);padding:8px 12px;border-radius:4px;margin-bottom:12px;";
-        warningEl.setText(this.t("e2eeRecoveryWarning"));
+        warningEl.setText(this.ctx.t("e2eeRecoveryWarning"));
 
-        const engine = this.plugin.syncManager.cryptoEngine;
+        const engine = this.ctx.cryptoEngine;
 
         // Recovery code (read-only textarea)
         const code = await engine.exportRecoveryCode();
@@ -662,14 +520,14 @@ export class E2EERecoveryExportModal extends Modal {
         // Copy + Close buttons
         new Setting(contentEl)
             .addButton((btn) =>
-                btn.setButtonText(this.t("e2eeRecoveryCopy")).onClick(() => {
+                btn.setButtonText(this.ctx.t("e2eeRecoveryCopy")).onClick(() => {
                     navigator.clipboard.writeText(code);
-                    btn.setButtonText(this.t("e2eeRecoveryCopied"));
-                    setTimeout(() => btn.setButtonText(this.t("e2eeRecoveryCopy")), 2000);
+                    btn.setButtonText(this.ctx.t("e2eeRecoveryCopied"));
+                    setTimeout(() => btn.setButtonText(this.ctx.t("e2eeRecoveryCopy")), 2000);
                 }),
             )
             .addButton((btn) =>
-                btn.setButtonText(this.t("e2eeRecoveryClose")).onClick(() => this.close()),
+                btn.setButtonText(this.ctx.t("e2eeRecoveryClose")).onClick(() => this.close()),
             );
     }
 }
@@ -684,28 +542,24 @@ export class E2EERecoveryImportModal extends Modal {
     private passwordInput?: HTMLInputElement;
     private strengthIndicator?: HTMLDivElement;
     private restoreBtn?: ButtonComponent;
-    private asciiWarning?: HTMLDivElement;
+    private showAsciiWarning?: (visible: boolean) => void;
 
     constructor(
         app: App,
-        private plugin: any,
+        private ctx: E2EEPluginContext,
     ) {
         super(app);
-    }
-
-    private t(key: string): string {
-        return this.plugin.i18n?.(key) || key;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.createEl("h2", { text: this.t("e2eeRecoveryImportTitle") });
-        contentEl.createEl("p", { text: this.t("e2eeRecoveryImportDesc") });
+        contentEl.createEl("h2", { text: this.ctx.t("e2eeRecoveryImportTitle") });
+        contentEl.createEl("p", { text: this.ctx.t("e2eeRecoveryImportDesc") });
 
         // Recovery code input
         new Setting(contentEl)
-            .setName(this.t("e2eeRecoveryCodeLabel"))
+            .setName(this.ctx.t("e2eeRecoveryCodeLabel"))
             .addTextArea((text: TextAreaComponent) => {
                 text.inputEl.rows = 2;
                 text.inputEl.style.cssText = "width:100%;font-family:monospace;";
@@ -716,48 +570,33 @@ export class E2EERecoveryImportModal extends Modal {
             });
 
         // New password
-        new Setting(contentEl)
-            .setName(this.t("e2eeChangePasswordNewLabel"))
-            .addText((text) => {
-                this.passwordInput = text.inputEl;
-                text.inputEl.type = "password";
-                text.inputEl.setAttribute("autocomplete", "new-password");
-                text.onChange((v) => {
-                    if (!ASCII_PRINTABLE.test(v)) {
-                        const filtered = v.replace(/[^\x20-\x7E]/g, "");
-                        text.setValue(filtered);
-                        this.newPassword = filtered;
-                        this.showAsciiWarning(true);
-                    } else {
-                        this.newPassword = v;
-                        this.showAsciiWarning(false);
-                    }
-                    this.updateButtonState();
-                    this.updateStrengthIndicator(this.newPassword);
-                });
-            })
-            .addExtraButton((btn) => {
-                btn.setIcon("eye");
-                btn.setTooltip("Show/Hide");
-                btn.onClick(() => {
-                    if (!this.passwordInput) return;
-                    const isHidden = this.passwordInput.type === "password";
-                    this.passwordInput.type = isHidden ? "text" : "password";
-                    btn.setIcon(isHidden ? "eye-off" : "eye");
-                });
-            });
+        this.passwordInput = addPasswordInput({
+            container: contentEl,
+            t: (k) => this.ctx.t(k),
+            label: this.ctx.t("e2eeChangePasswordNewLabel"),
+            autocomplete: "new-password",
+            onPasswordChange: (pw) => {
+                this.newPassword = pw;
+                this.updateButtonState();
+                if (this.strengthIndicator) {
+                    renderStrengthIndicator(
+                        this.strengthIndicator, pw,
+                        this.ctx.checkPasswordStrength, (k) => this.ctx.t(k),
+                    );
+                }
+            },
+            onAsciiViolation: (violated) => this.showAsciiWarning?.(violated),
+        });
 
         // ASCII-only warning
-        this.asciiWarning = contentEl.createDiv({ cls: "vault-sync-ascii-warning" });
-        this.asciiWarning.style.cssText = "color:var(--text-error);font-size:0.85em;display:none;margin-top:-8px;margin-bottom:8px;";
-        this.asciiWarning.setText(this.t("e2eeSetupAsciiOnly"));
+        this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
         this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
 
         // Confirm password
         new Setting(contentEl)
-            .setName(this.t("e2eeChangePasswordConfirmLabel"))
+            .setName(this.ctx.t("e2eeChangePasswordConfirmLabel"))
             .addText((text) => {
                 text.inputEl.type = "password";
                 text.inputEl.setAttribute("autocomplete", "new-password");
@@ -770,92 +609,51 @@ export class E2EERecoveryImportModal extends Modal {
         // Restore button
         new Setting(contentEl).addButton((btn) => {
             this.restoreBtn = btn;
-            btn.setButtonText(this.t("e2eeRecoveryRestoreButton"))
+            btn.setButtonText(this.ctx.t("e2eeRecoveryRestoreButton"))
                 .setCta()
                 .setDisabled(true)
                 .onClick(async () => {
                     btn.setDisabled(true);
                     btn.setButtonText("...");
                     try {
-                        const engine = this.plugin.syncManager.cryptoEngine;
-                        const newBlob = await engine.recoverFromCode(
+                        const newBlob = await this.ctx.cryptoEngine.recoverFromCode(
                             this.recoveryCode, this.newPassword,
                         );
 
-                        await this.plugin.syncManager.vaultLockService.uploadLockFile(newBlob);
+                        await this.ctx.vaultLockService.uploadLockFile(newBlob);
 
                         // Save new password for auto-unlock
-                        if (this.plugin.syncManager.secureStorage) {
+                        if (this.ctx.secureStorage) {
                             try {
                                 const hashedPassword = await hashPassword(this.newPassword);
-                                await this.plugin.syncManager.secureStorage.setExtraSecret(
+                                await this.ctx.secureStorage.setExtraSecret(
                                     "e2ee-password", hashedPassword,
                                 );
                             } catch (_) { /* non-critical */ }
                         }
 
-                        await this.plugin.syncManager.notify("noticeE2EERecoveryComplete");
+                        await this.ctx.notify("noticeE2EERecoveryComplete");
                         this.close();
-                        this.plugin.refreshSettingsUI?.();
-                    } catch (e: any) {
-                        new Notice(`Recovery failed: ${e.message || e}`);
+                        this.ctx.refreshSettingsUI?.();
+                    } catch (e: unknown) {
+                        new Notice(`Recovery failed: ${formatError(e)}`);
                         btn.setDisabled(false);
-                        btn.setButtonText(this.t("e2eeRecoveryRestoreButton"));
+                        btn.setButtonText(this.ctx.t("e2eeRecoveryRestoreButton"));
                     }
                 });
         });
     }
 
-    private showAsciiWarning(show: boolean) {
-        if (this.asciiWarning) {
-            this.asciiWarning.style.display = show ? "" : "none";
-        }
-    }
-
     private updateButtonState() {
         if (this.restoreBtn) {
-            const valid = this.recoveryCode.length > 0
+            // Pre-validate Base64 format: 32 bytes → 44 chars Base64 (with padding)
+            const isValidBase64 = /^[A-Za-z0-9+/]+=*$/.test(this.recoveryCode)
+                && this.recoveryCode.length >= 40
+                && this.recoveryCode.length <= 48;
+            const valid = isValidBase64
                 && this.newPassword.length >= 8
                 && this.newPassword === this.confirmPassword;
             this.restoreBtn.setDisabled(!valid);
-        }
-    }
-
-    private updateStrengthIndicator(password: string) {
-        if (!this.strengthIndicator) return;
-        this.strengthIndicator.empty();
-
-        const checker = this.plugin.checkPasswordStrength;
-        if (!checker || !password) return;
-
-        const result = checker(password);
-
-        const barContainer = this.strengthIndicator.createDiv({ cls: "vault-sync-strength-bar-container" });
-        barContainer.style.cssText = "display:flex;gap:4px;margin-bottom:4px;";
-
-        const colors: Record<string, string> = {
-            weak: "var(--text-error)", fair: "var(--text-warning)",
-            good: "var(--text-success)", strong: "var(--interactive-accent)",
-        };
-        const segmentCount: Record<string, number> = { weak: 1, fair: 2, good: 3, strong: 4 };
-        const filled = segmentCount[result.strength] || 0;
-        const color = colors[result.strength] || "var(--text-muted)";
-
-        for (let i = 0; i < 4; i++) {
-            const seg = barContainer.createDiv();
-            seg.style.cssText = `height:4px;flex:1;border-radius:2px;background:${i < filled ? color : "var(--background-modifier-border)"};`;
-        }
-
-        const strengthKey = `passwordStrength${result.strength.charAt(0).toUpperCase() + result.strength.slice(1)}`;
-        const label = this.t(strengthKey);
-        const labelEl = this.strengthIndicator.createDiv();
-        labelEl.style.cssText = `font-size:0.85em;color:${color};`;
-        labelEl.setText(label);
-
-        if (result.feedback.length > 0) {
-            const feedbackEl = this.strengthIndicator.createDiv();
-            feedbackEl.style.cssText = "font-size:0.8em;color:var(--text-muted);margin-top:2px;";
-            feedbackEl.setText(result.feedback.map((key: string) => this.t(key)).join(". "));
         }
     }
 }

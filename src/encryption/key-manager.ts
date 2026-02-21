@@ -1,4 +1,4 @@
-import { VaultLockData, ICryptoEngine, SettingSection } from "../interfaces";
+import { VaultLockData, ICryptoEngine, SettingSection, E2EEPluginContext } from "../interfaces";
 import { generateMasterKey, deriveKey, encryptData, decryptData, deriveOuterKey, hashPassword } from "./crypto-primitives";
 import {
     isChunkedFormat as _isChunkedFormat,
@@ -15,7 +15,6 @@ import {
     E2EERecoveryExportModal,
     E2EERecoveryImportModal,
 } from "../ui/modals";
-import { Notice } from "obsidian";
 
 export class MasterKeyManager implements ICryptoEngine {
     private masterKey: CryptoKey | null = null;
@@ -192,28 +191,28 @@ export class MasterKeyManager implements ICryptoEngine {
             .map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    showSetupModal(plugin: any): void {
-        new E2EESetupModal(plugin.app, plugin).open();
+    showSetupModal(ctx: E2EEPluginContext): void {
+        new E2EESetupModal(ctx.app, ctx).open();
     }
 
-    showUnlockModal(plugin: any): void {
-        new E2EEUnlockModal(plugin.app, plugin).open();
+    showUnlockModal(ctx: E2EEPluginContext): void {
+        new E2EEUnlockModal(ctx.app, ctx).open();
     }
 
-    showPasswordChangeModal(plugin: any): void {
-        new E2EEPasswordChangeModal(plugin.app, plugin).open();
+    showPasswordChangeModal(ctx: E2EEPluginContext): void {
+        new E2EEPasswordChangeModal(ctx.app, ctx).open();
     }
 
-    showRecoveryExportModal(plugin: any): void {
-        new E2EERecoveryExportModal(plugin.app, plugin).open();
+    showRecoveryExportModal(ctx: E2EEPluginContext): void {
+        new E2EERecoveryExportModal(ctx.app, ctx).open();
     }
 
-    showRecoveryImportModal(plugin: any): void {
-        new E2EERecoveryImportModal(plugin.app, plugin).open();
+    showRecoveryImportModal(ctx: E2EEPluginContext): void {
+        new E2EERecoveryImportModal(ctx.app, ctx).open();
     }
 
-    getSettingsSections(plugin: any): SettingSection[] {
-        const t = (key: string) => plugin.t?.(key) || plugin.syncManager?.t?.(key) || key;
+    getSettingsSections(ctx: E2EEPluginContext): SettingSection[] {
+        const t = (key: string) => ctx.t(key);
 
         return [
             {
@@ -225,9 +224,9 @@ export class MasterKeyManager implements ICryptoEngine {
                         type: "info",
                         label: t("settingE2EEStatus") || "Encryption Status",
                         desc: t("settingE2EEStatusGuide") || "Manage via Command Palette.",
-                        getDesc: (s: any, p: any) => {
-                            if (!s.e2eeEnabled) return t("settingE2EEStatusDisabled") || "Disabled";
-                            if (p.syncManager?.cryptoEngine?.isUnlocked?.())
+                        getDesc: () => {
+                            if (!ctx.settings.e2eeEnabled) return t("settingE2EEStatusDisabled") || "Disabled";
+                            if (ctx.cryptoEngine.isUnlocked())
                                 return t("settingE2EEStatusUnlocked") || "Unlocked";
                             return t("settingE2EEStatusLocked") || "Locked";
                         },
