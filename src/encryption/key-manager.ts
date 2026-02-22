@@ -220,6 +220,11 @@ export class MasterKeyManager implements ICryptoEngine {
                 title: t("settingSecuritySection") || "Security (E2EE)",
                 items: [
                     {
+                        key: "_subheader_e2ee_status",
+                        type: "subheader",
+                        label: t("settingSubheaderE2EEStatus") || "Encryption",
+                    },
+                    {
                         key: "e2eeStatusDisp",
                         type: "info",
                         label: t("settingE2EEStatus") || "Encryption Status",

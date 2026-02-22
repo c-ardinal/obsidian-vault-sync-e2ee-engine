@@ -15,7 +15,7 @@ export interface MigrationProgress {
 
 export interface SettingItem {
     key: string;
-    type: "toggle" | "text" | "number" | "dropdown" | "textarea" | "info";
+    type: "toggle" | "text" | "number" | "dropdown" | "textarea" | "info" | "subheader";
     label: string;
     desc?: string;
     getDesc?: (settings: any, plugin: any) => string;
