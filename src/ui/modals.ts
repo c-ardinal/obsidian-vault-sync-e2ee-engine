@@ -289,6 +289,7 @@ export class E2EEUnlockModal extends Modal {
     private password = "";
     private passwordInput?: HTMLInputElement;
     private autoUnlock = false;
+    private showAsciiWarning?: (visible: boolean) => void;
 
     constructor(
         app: App,
@@ -302,24 +303,19 @@ export class E2EEUnlockModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
         contentEl.createEl("h2", { text: this.ctx.t("e2eeUnlockTitle") });
-        new Setting(contentEl)
-            .setName(this.ctx.t("e2eeUnlockPasswordLabel"))
-            .addText((text) => {
-                this.passwordInput = text.inputEl;
-                text.inputEl.type = "password";
-                text.inputEl.setAttribute("autocomplete", "current-password");
-                text.onChange((v) => (this.password = v));
-            })
-            .addExtraButton((btn) => {
-                btn.setIcon("eye");
-                btn.setTooltip("Show/Hide");
-                btn.onClick(() => {
-                    if (!this.passwordInput) return;
-                    const isHidden = this.passwordInput.type === "password";
-                    this.passwordInput.type = isHidden ? "text" : "password";
-                    btn.setIcon(isHidden ? "eye-off" : "eye");
-                });
-            });
+        this.passwordInput = addPasswordInput({
+            container: contentEl,
+            t: (k) => this.ctx.t(k),
+            label: this.ctx.t("e2eeUnlockPasswordLabel"),
+            autocomplete: "current-password",
+            onPasswordChange: (pw) => {
+                this.password = pw;
+            },
+            onAsciiViolation: (violated) => this.showAsciiWarning?.(violated),
+        });
+
+        // ASCII-only warning (hidden by default)
+        this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
         new Setting(contentEl)
             .setName(this.ctx.t("e2eeUnlockAutoUnlock"))
             .addToggle((toggle) => {
