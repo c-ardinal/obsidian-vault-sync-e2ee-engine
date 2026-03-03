@@ -1,6 +1,6 @@
 import { DecryptionError } from "./errors";
 
-/** VSC2 magic bytes: "VSC2" (VaultSync Chunked v2) */
+/** VSC2 magic bytes: "VSC2" (Vault-Sync Chunked v2) */
 export const CHUNK_MAGIC = new Uint8Array([0x56, 0x53, 0x43, 0x32]);
 
 export const HEADER_SIZE = 12; // magic(4) + chunkSize(4) + totalChunks(4)
@@ -119,7 +119,11 @@ export async function decryptChunked(
 
     for (let i = 0; i < totalChunks; i++) {
         if (readOffset + ivSize > data.byteLength) {
-            throw new DecryptionError(`VSC2: truncated data at chunk ${i} (missing IV)`, "format", i);
+            throw new DecryptionError(
+                `VSC2: truncated data at chunk ${i} (missing IV)`,
+                "format",
+                i,
+            );
         }
 
         const iv = new Uint8Array(data.slice(readOffset, readOffset + ivSize));
@@ -137,7 +141,11 @@ export async function decryptChunked(
         }
 
         if (readOffset + ciphertextSize > data.byteLength) {
-            throw new DecryptionError(`VSC2: truncated data at chunk ${i} (missing ciphertext)`, "format", i);
+            throw new DecryptionError(
+                `VSC2: truncated data at chunk ${i} (missing ciphertext)`,
+                "format",
+                i,
+            );
         }
 
         const ciphertext = data.slice(readOffset, readOffset + ciphertextSize);
@@ -148,9 +156,7 @@ export async function decryptChunked(
             decrypted = await engine.decrypt(ciphertext, iv);
         } catch (e) {
             if (e instanceof DecryptionError) throw e;
-            throw new DecryptionError(
-                `VSC2: decryption failed at chunk ${i}`, "authentication", i,
-            );
+            throw new DecryptionError(`VSC2: decryption failed at chunk ${i}`, "authentication", i);
         }
         output.set(new Uint8Array(decrypted), writeOffset);
         writeOffset += decrypted.byteLength;

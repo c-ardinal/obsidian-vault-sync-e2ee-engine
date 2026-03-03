@@ -1,5 +1,5 @@
 /**
- * Cryptographic primitives for VaultSync using Web Crypto API (SubtleCrypto).
+ * Cryptographic primitives for Vault-Sync using Web Crypto API (SubtleCrypto).
  */
 
 export async function generateMasterKey(): Promise<CryptoKey> {
@@ -89,11 +89,8 @@ export async function deriveOuterKey(hashedPassword: string): Promise<CryptoKey>
         "SHA-256",
         new TextEncoder().encode(hashedPassword),
     );
-    return await window.crypto.subtle.importKey(
-        "raw",
-        hashBuffer,
-        { name: "AES-GCM" },
-        false,
-        ["encrypt", "decrypt"],
-    );
+    return await window.crypto.subtle.importKey("raw", hashBuffer, { name: "AES-GCM" }, false, [
+        "encrypt",
+        "decrypt",
+    ]);
 }
