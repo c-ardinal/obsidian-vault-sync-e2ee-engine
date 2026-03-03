@@ -1,7 +1,7 @@
 {
     "name": "vaultsync-e2ee-engine",
-    "version": "0.13.0",
-    "description": "Encryption engine for VaultSync (External Add-on)",
+    "version": "0.16.0",
+    "description": "Encryption engine for Vault-Sync (External Add-on)",
     "type": "module",
     "main": "dist/e2ee-engine.js",
     "scripts": {

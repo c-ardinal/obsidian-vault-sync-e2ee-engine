@@ -16,7 +16,7 @@ try {
     console.log(`[E2EE] Engine file: ${enginePath}`);
     console.log(`[E2EE] SHA-256 hash: ${hash}`);
     console.log("");
-    console.log("To apply, update VaultSync's src/encryption/engine-loader.ts:");
+    console.log("To apply, update Vault-Sync's src/encryption/engine-loader.ts:");
     console.log(`  const APPROVED_ENGINE_HASH = "${hash}";`);
 } catch (err) {
     console.error("[E2EE] Failed to compute hash:", err);
