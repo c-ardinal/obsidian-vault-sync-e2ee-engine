@@ -112,7 +112,17 @@ export async function decryptChunked(
     if (totalChunks === 0) throw new DecryptionError("VSC2: totalChunks is 0", "format");
 
     const { ivSize, tagSize } = engine;
-    const maxPlaintextSize = totalChunks * chunkSize;
+    // Check the header against the data before allocating from it: a corrupt header
+    // (or a truncated download) asked for up to 16 EiB here and crashed with a
+    // RangeError, or tried to allocate gigabytes on a phone.
+    const minSize = HEADER_SIZE + (totalChunks - 1) * (ivSize + chunkSize + tagSize) + ivSize + tagSize;
+    if (data.byteLength < minSize) {
+        throw new DecryptionError("VSC2: data shorter than its header declares", "format");
+    }
+    const maxPlaintextSize = Math.min(
+        totalChunks * chunkSize,
+        data.byteLength - HEADER_SIZE - totalChunks * (ivSize + tagSize),
+    );
     const output = new Uint8Array(maxPlaintextSize);
     let writeOffset = 0;
     let readOffset = HEADER_SIZE;
