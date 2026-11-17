@@ -56,15 +56,15 @@ E2EE Engine をインストール後、Obsidian のコマンドパレットか�
 ### Vault-Syncの設定画面から（推奨・スマホ対応）
 
 1. Vault-Syncの設定画面「エンドツーエンド暗号化 (E2EE)」の **導入する...** をタップ（またはコマンドパレットから `E2EE: 暗号化エンジンを導入する` を実行）
-2. **リリースページを開く** をタップし、最新リリースの `e2ee-engine.js` をダウンロード
-    - 最新版以外のバージョンは使用できません。Vault-Syncが拒否します。
-3. ダイアログで[追加利用条件](TERMS_ja.md)に同意し、**ファイルを選択** でダウンロードしたファイルを選ぶ
-4. Vault-Syncがファイルを検証・保存し、再起動なしで有効化します
+2. **リリースページを開く** をタップし、最新リリースの `vault-sync-e2ee-engine.zip` をダウンロード
+    - zipにはエンジンと[追加利用条件](TERMS_ja.md)が入っています。最新版以外のバージョンは使用できません。Vault-Syncが拒否します。
+3. **ファイルを選択** でダウンロードしたzipを選ぶ。Vault-Syncが検証し、追加利用条件を表示します
+4. 追加利用条件を読んで同意し、**導入する** をタップ。再起動なしで有効化されます
 5. コマンドパレットから `E2EE: Vaultの暗号化を開始する` を実行し、セットアップウィザードに従って下さい
 
 他のデバイスで暗号化済みのVaultでは、起動時に導入ダイアログが自動で開き、導入後そのままパスワード入力に進みます。
 
-### 手動でコピー
+### 手動でコピー（上級者向け）
 
 1. [リリースページ](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases) から最新版の `e2ee-engine.js` をダウンロード
 2. Vault-Sync のプラグインディレクトリに配置:
@@ -72,6 +72,8 @@ E2EE Engine をインストール後、Obsidian のコマンドパレットか�
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
 3. Obsidian を再起動し、コマンドパレットから暗号化開始コマンドを実行
+
+手動で導入した場合も、[追加利用条件](TERMS_ja.md)に同意したものとみなされます。
 
 ### ソースから
 
@@ -91,6 +93,8 @@ E2EE Engine をインストール後、Obsidian のコマンドパレットか�
     ```
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
+
+`npm run build` は `dist/vault-sync-e2ee-engine.zip`（エンジン＋利用条件）も出力し、Vault-Syncが固定しているエンジンと各利用条件ファイルのSHA-256ハッシュを表示します。エンジンまたは `TERMS` ファイルを変更した場合は、新しいハッシュを反映したVault-Syncのリリースが必要です。
 
 ---
 

@@ -56,15 +56,15 @@ Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using
 ### From Vault-Sync settings (recommended, works on mobile)
 
 1. In Vault-Sync's settings, tap **Install...** under "End-to-End Encryption (E2EE)" (or run `E2EE: Install Encryption Engine` from the command palette)
-2. Tap **Open release page** and download `e2ee-engine.js` from the latest release
-    - Only the latest version can be used. Vault-Sync rejects other versions.
-3. Agree to the [Additional Terms of Use](TERMS.md) in the dialog, then tap **Choose file** and pick the downloaded file
-4. Vault-Sync verifies the file, saves it, and activates it without a restart
+2. Tap **Open release page** and download `vault-sync-e2ee-engine.zip` from the latest release
+    - The zip contains the engine and its [Additional Terms of Use](TERMS.md). Only the latest version can be used; Vault-Sync rejects other versions.
+3. Tap **Choose file** and pick the downloaded zip. Vault-Sync verifies it and shows the Additional Terms
+4. Read and agree to the terms, then tap **Install**. The engine is activated without a restart
 5. Run `E2EE: Start Vault Encryption` from the command palette and follow the setup wizard
 
 On a device whose vault is already encrypted from another device, the install dialog opens by itself and then asks for the password.
 
-### Manual copy
+### Manual copy (advanced)
 
 1. Download the latest `e2ee-engine.js` from the [Releases page](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases)
 2. Place it in your Vault-Sync plugin directory:
@@ -72,6 +72,8 @@ On a device whose vault is already encrypted from another device, the install di
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
 3. Restart Obsidian, then run the E2EE setup command from the command palette
+
+Installing by hand also means you agree to the [Additional Terms of Use](TERMS.md).
 
 ### From Source
 
@@ -91,6 +93,8 @@ On a device whose vault is already encrypted from another device, the install di
     ```
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
+
+`npm run build` also writes `dist/vault-sync-e2ee-engine.zip` (engine + terms) and prints the SHA-256 hashes Vault-Sync pins for the engine and for each terms file. Changing the engine or either `TERMS` file needs a Vault-Sync release with the new hashes.
 
 ---
 
