@@ -94,7 +94,7 @@ E2EE Engine をインストール後、Obsidian のコマンドパレットか�
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
 
-`npm run build` は `dist/vault-sync-e2ee-engine.zip`（エンジン＋利用条件）も出力し、Vault-Syncが固定しているエンジンと各利用条件ファイルのSHA-256ハッシュを表示します。エンジンまたは `TERMS` ファイルを変更した場合は、新しいハッシュを反映したVault-Syncのリリースが必要です。
+`npm run build` は `dist/vault-sync-e2ee-engine.zip`（Vault-Syncが取り込むアドオンパッケージ: マニフェスト `addon.json`・エンジン・利用条件）も出力し、Vault-Syncが固定している各ファイルのSHA-256ハッシュを表示します。エンジン・バージョン・`TERMS` ファイルのいずれかを変更した場合は、新しいハッシュを反映したVault-Syncのリリースが必要です。
 
 ---
 

@@ -1,15 +1,35 @@
-// Packs the built engine and its Additional Terms of Use into one zip.
+// Packs the built engine, its Additional Terms of Use and an add-on manifest
+// (addon.json) into one zip: Vault-Sync's generic add-on package format.
 //
 // Vault-Sync imports this zip: it shows the terms in-app, asks the user to
 // agree, and only then installs the engine. Vault-Sync pins the SHA-256 of
-// the engine AND of each terms file, so changing either needs a matching
+// every file in the package, so changing any of them needs a matching
 // Vault-Sync release (see the hashes printed below).
 import fs from "fs";
 import crypto from "crypto";
 import { zipSync, strToU8 } from "fflate";
 
 const OUT = "./dist/vault-sync-e2ee-engine.zip";
+const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
+
+// Add-on manifest read by Vault-Sync. Display text for the add-on lives here,
+// not in Vault-Sync.
+const manifest = {
+    id: "vault-sync-e2ee-engine",
+    name: "Vault-Sync E2EE Engine",
+    version: pkg.version,
+    description: {
+        en: "End-to-end encryption for Vault-Sync. Files are encrypted on your device before upload.",
+        ja: "Vault-Sync用のエンドツーエンド暗号化。ファイルはアップロード前にデバイス上で暗号化されます。",
+    },
+    entry: "e2ee-engine.js",
+    terms: { en: "TERMS.md", ja: "TERMS_ja.md" },
+};
+fs.mkdirSync("./dist", { recursive: true });
+fs.writeFileSync("./dist/addon.json", JSON.stringify(manifest, null, 4) + "\n");
+
 const FILES = {
+    "addon.json": "./dist/addon.json",
     "e2ee-engine.js": "./dist/e2ee-engine.js",
     "TERMS.md": "./TERMS.md",
     "TERMS_ja.md": "./TERMS_ja.md",
@@ -36,9 +56,9 @@ fs.writeFileSync(OUT, zip);
 
 console.log(`[E2EE] Package: ${OUT} (${zip.length} bytes)`);
 console.log("");
-console.log("To apply, update Vault-Sync's src/encryption/engine-loader.ts:");
-console.log(`  APPROVED_ENGINE_HASH = "${hashes["e2ee-engine.js"]}"`);
-console.log(`  APPROVED_TERMS_HASHES = {`);
-console.log(`      "TERMS.md": "${hashes["TERMS.md"]}",`);
-console.log(`      "TERMS_ja.md": "${hashes["TERMS_ja.md"]}",`);
-console.log(`  }`);
+console.log(
+    "To apply, update the files of this add-on in Vault-Sync's src/addons/approved-addons.ts:",
+);
+for (const [name, hash] of Object.entries(hashes)) {
+    console.log(`    "${name}": "${hash}",`);
+}

@@ -94,7 +94,7 @@ Installing by hand also means you agree to the [Additional Terms of Use](TERMS.m
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
 
-`npm run build` also writes `dist/vault-sync-e2ee-engine.zip` (engine + terms) and prints the SHA-256 hashes Vault-Sync pins for the engine and for each terms file. Changing the engine or either `TERMS` file needs a Vault-Sync release with the new hashes.
+`npm run build` also writes `dist/vault-sync-e2ee-engine.zip`, the add-on package Vault-Sync imports (`addon.json` manifest, engine, terms), and prints the SHA-256 hash Vault-Sync pins for each file. Changing the engine, the version or either `TERMS` file needs a Vault-Sync release with the new hashes.
 
 ---
 
