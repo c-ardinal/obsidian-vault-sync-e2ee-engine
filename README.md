@@ -43,6 +43,12 @@ Once the E2EE Engine is installed, the following commands become available in Ob
 
 ---
 
+## 📜 Terms
+
+Installing the Engine means you agree to the [Additional Terms of Use](TERMS.md), an addendum to the [Vault-Sync Terms of Service](https://obsidian-vault-sync.pages.dev/tos/) covering your own responsibility, laws on encryption software, and the limits of the protection.
+
+---
+
 ## 🚀 Installation
 
 Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using this plugin without E2EE, follow the [Recovery Procedure](#️-recovery-procedure).
@@ -52,7 +58,7 @@ Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using
 1. In Vault-Sync's settings, tap **Install...** under "End-to-End Encryption (E2EE)" (or run `E2EE: Install Encryption Engine` from the command palette)
 2. Tap **Open release page** and download `e2ee-engine.js` from the latest release
     - Only the latest version can be used. Vault-Sync rejects other versions.
-3. Confirm the two statements in the dialog, then tap **Choose file** and pick the downloaded file
+3. Agree to the [Additional Terms of Use](TERMS.md) in the dialog, then tap **Choose file** and pick the downloaded file
 4. Vault-Sync verifies the file, saves it, and activates it without a restart
 5. Run `E2EE: Start Vault Encryption` from the command palette and follow the setup wizard
 
