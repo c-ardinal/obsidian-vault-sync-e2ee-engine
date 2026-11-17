@@ -13,7 +13,11 @@ export async function generateMasterKey(): Promise<CryptoKey> {
     );
 }
 
-export async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+export async function deriveKey(
+    password: string,
+    salt: Uint8Array,
+    iterations = 100000,
+): Promise<CryptoKey> {
     const encoder = new TextEncoder();
     const passwordKey = await window.crypto.subtle.importKey(
         "raw",
@@ -27,7 +31,7 @@ export async function deriveKey(password: string, salt: Uint8Array): Promise<Cry
         {
             name: "PBKDF2",
             salt,
-            iterations: 100000,
+            iterations,
             hash: "SHA-256",
         } as Pbkdf2Params,
         passwordKey,
@@ -93,4 +97,50 @@ export async function deriveOuterKey(hashedPassword: string): Promise<CryptoKey>
         "encrypt",
         "decrypt",
     ]);
+}
+
+/** v2 lock-file KDF parameters (OWASP 2023: PBKDF2-HMAC-SHA512 >= 210,000). */
+export const LOCK_V2_KDF = { hash: "SHA-512", iterations: 210_000 } as const;
+
+/**
+ * v2 lock-file keys: ONE salted, slow PBKDF2-SHA512 run yields 64 bytes, split
+ * into the outer key (opens vault-lock.vault) and the inner key (unwraps the
+ * master key). The v1 outer key was SHA-256(hashedPassword) with no salt, so
+ * anyone holding the lock file could test password guesses at hash speed and
+ * skip PBKDF2 entirely.
+ */
+export async function deriveLockKeysV2(
+    hashedPassword: string,
+    salt: Uint8Array,
+    iterations: number = LOCK_V2_KDF.iterations,
+): Promise<{ outerKey: CryptoKey; innerKey: CryptoKey }> {
+    const base = await window.crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(hashedPassword),
+        { name: "PBKDF2" },
+        false,
+        ["deriveBits"],
+    );
+    const bits = new Uint8Array(
+        await window.crypto.subtle.deriveBits(
+            { name: "PBKDF2", salt, iterations, hash: LOCK_V2_KDF.hash } as Pbkdf2Params,
+            base,
+            512,
+        ),
+    );
+    const outerKey = await window.crypto.subtle.importKey(
+        "raw",
+        bits.slice(0, 32),
+        { name: "AES-GCM" },
+        false,
+        ["encrypt", "decrypt"],
+    );
+    const innerKey = await window.crypto.subtle.importKey(
+        "raw",
+        bits.slice(32, 64),
+        { name: "AES-GCM" },
+        false,
+        ["wrapKey", "unwrapKey"],
+    );
+    return { outerKey, innerKey };
 }

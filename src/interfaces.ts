@@ -5,6 +5,8 @@ export interface VaultLockData {
     encryptedMasterKey: string;
     iv: string;
     algo: string;
+    /** v2: PBKDF2 iterations used for the lock keys */
+    iterations?: number;
 }
 
 export interface MigrationProgress {
@@ -94,6 +96,11 @@ export interface ICryptoEngine {
     unlockVault(encryptedBlob: string, password: string): Promise<void>;
     updatePassword(password: string): Promise<string>;
     isUnlocked(): boolean;
+    /**
+     * True after unlocking a lock file in the old (v1) format. The caller should
+     * then re-save it: `uploadLockFile(await updatePassword(samePassword))`.
+     */
+    needsLockMigration?(): boolean;
 
     encrypt(data: ArrayBuffer): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }>;
     decrypt(ciphertext: ArrayBuffer, iv: Uint8Array): Promise<ArrayBuffer>;

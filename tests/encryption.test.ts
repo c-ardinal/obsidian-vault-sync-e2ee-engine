@@ -42,8 +42,9 @@ describe("Encryption Foundation", () => {
         const blob = await keyManager.initializeNewVault(password);
         expect(typeof blob).toBe("string");
         expect(blob.length).toBeGreaterThan(0);
-        // Blob should be valid base64 (outer AES-GCM encrypted VaultLockData)
-        expect(() => atob(blob)).not.toThrow();
+        // v2 lock blob: prefix + base64([salt][iv][outer AES-GCM ciphertext])
+        expect(blob.startsWith("VSL2:")).toBe(true);
+        expect(() => atob(blob.slice(5))).not.toThrow();
         expect(keyManager.isUnlocked()).toBe(true);
     });
 
@@ -188,3 +189,54 @@ describe("updatePassword", () => {
         await expect(km.updatePassword("any")).rejects.toThrow("Vault is locked");
     });
 });
+
+describe("Lock file v2 and migration from v1", () => {
+    const password = "hashed-password-xyz";
+
+    it("unlocks a legacy (v1) lock file and asks for migration", async () => {
+        const writer = new MasterKeyManager();
+        await writer.initializeNewVault(password);
+        const legacy = await writer.buildLegacyLockForTest(password);
+        expect(legacy.startsWith("VSL2:")).toBe(false);
+
+        const reader = new MasterKeyManager();
+        await reader.unlockVault(legacy, password);
+        expect(reader.isUnlocked()).toBe(true);
+        expect(reader.needsLockMigration()).toBe(true);
+        expect(await reader.getKeyFingerprint()).toBe(await writer.getKeyFingerprint());
+    });
+
+    it("migrates v1 to v2 keeping the same master key", async () => {
+        const writer = new MasterKeyManager();
+        await writer.initializeNewVault(password);
+        const legacy = await writer.buildLegacyLockForTest(password);
+
+        const dev = new MasterKeyManager();
+        await dev.unlockVault(legacy, password);
+        const migrated = await dev.updatePassword(password);
+        expect(migrated.startsWith("VSL2:")).toBe(true);
+        expect(dev.needsLockMigration()).toBe(false);
+
+        const other = new MasterKeyManager();
+        await other.unlockVault(migrated, password);
+        expect(other.needsLockMigration()).toBe(false);
+        expect(await other.getKeyFingerprint()).toBe(await writer.getKeyFingerprint());
+    });
+
+    it("rejects a wrong password on a v2 lock file", async () => {
+        const writer = new MasterKeyManager();
+        const blob = await writer.initializeNewVault(password);
+        await expect(new MasterKeyManager().unlockVault(blob, "wrong")).rejects.toThrow("Invalid password");
+    });
+
+    it("v2 cannot be opened with the old unsalted SHA-256 outer key", async () => {
+        const writer = new MasterKeyManager();
+        const blob = await writer.initializeNewVault(password);
+        // Same salt-free key derivation an attacker could use against v1
+        const { deriveOuterKey } = await import("../src/encryption/crypto-primitives");
+        const outer = await deriveOuterKey(password);
+        const bytes = Uint8Array.from(atob(blob.slice(5)), (c) => c.charCodeAt(0));
+        await expect(decryptData(outer, bytes.slice(28).buffer, bytes.slice(16, 28))).rejects.toThrow();
+    });
+});
+
