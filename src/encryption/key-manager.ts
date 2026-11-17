@@ -1,5 +1,17 @@
 import { VaultLockData, ICryptoEngine, SettingSection, E2EEPluginContext } from "../interfaces";
-import { generateMasterKey, deriveKey, encryptData, decryptData, deriveOuterKey, hashPassword } from "./crypto-primitives";
+import {
+    generateMasterKey,
+    deriveKey,
+    encryptData,
+    decryptData,
+    deriveOuterKey,
+    deriveLockKeysV2,
+    hashPassword,
+    LOCK_V2_KDF,
+} from "./crypto-primitives";
+
+/** v2 lock blob: "VSL2:" + base64([salt 16][iv 12][AES-GCM ciphertext of VaultLockData]) */
+const LOCK_V2_PREFIX = "VSL2:";
 import {
     isChunkedFormat as _isChunkedFormat,
     encryptChunked as _encryptChunked,
@@ -18,6 +30,7 @@ import {
 
 export class MasterKeyManager implements ICryptoEngine {
     private masterKey: CryptoKey | null = null;
+    private legacyLockUnlocked = false;
 
     readonly ivSize = 12;
     readonly tagSize = 16;
@@ -27,48 +40,57 @@ export class MasterKeyManager implements ICryptoEngine {
     }
 
     async initializeNewVault(password: string): Promise<string> {
-        const mk = await generateMasterKey();
-        this.masterKey = mk;
-        const salt = window.crypto.getRandomValues(new Uint8Array(16));
-        const wk = await deriveKey(password, salt);
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const wrappedKeyBuffer = await window.crypto.subtle.wrapKey("raw", mk, wk, {
-            name: "AES-GCM",
-            iv,
-        });
-
-        const lockData: VaultLockData = {
-            salt: this.arrayBufferToBase64(salt),
-            encryptedMasterKey: this.arrayBufferToBase64(wrappedKeyBuffer),
-            iv: this.arrayBufferToBase64(iv),
-            algo: "PBKDF2-SHA256-100k-AES-GCM-256",
-        };
-        return await this.wrapLockFile(lockData, password);
+        this.masterKey = await generateMasterKey();
+        return this.buildLockV2(password);
     }
 
     async updatePassword(password: string): Promise<string> {
         if (!this.masterKey) throw new Error("Vault is locked. Unlock first.");
+        return this.buildLockV2(password);
+    }
 
-        const salt = window.crypto.getRandomValues(new Uint8Array(16));
-        const wk = await deriveKey(password, salt);
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-
-        const wrappedKeyBuffer = await window.crypto.subtle.wrapKey("raw", this.masterKey, wk, {
-            name: "AES-GCM",
-            iv,
-        });
-
-        const lockData: VaultLockData = {
-            salt: this.arrayBufferToBase64(salt),
-            encryptedMasterKey: this.arrayBufferToBase64(wrappedKeyBuffer),
-            iv: this.arrayBufferToBase64(iv),
-            algo: "PBKDF2-SHA256-100k-AES-GCM-256",
-        };
-        return await this.wrapLockFile(lockData, password);
+    needsLockMigration(): boolean {
+        return this.legacyLockUnlocked;
     }
 
     async unlockVault(encryptedBlob: string, password: string): Promise<void> {
-        // Outer layer: fast password check via AES-GCM(SHA-256(hashedPassword))
+        if (encryptedBlob.startsWith(LOCK_V2_PREFIX)) {
+            await this.unlockV2(encryptedBlob, password);
+            this.legacyLockUnlocked = false;
+        } else {
+            await this.unlockV1(encryptedBlob, password);
+            this.legacyLockUnlocked = true;
+        }
+    }
+
+    /** v2: one salted PBKDF2-SHA512 run yields both the outer and the inner key. */
+    private async unlockV2(blob: string, password: string): Promise<void> {
+        try {
+            const bytes = this.base64ToBytes(blob.slice(LOCK_V2_PREFIX.length));
+            const salt = bytes.slice(0, 16);
+            const iv = bytes.slice(16, 28);
+            const ciphertext = bytes.slice(28);
+            // Iterations are fixed for v2; a future change bumps the prefix.
+            const { outerKey, innerKey } = await deriveLockKeysV2(password, salt);
+            const plaintext = await decryptData(outerKey, ciphertext.buffer, iv);
+            const lockData = JSON.parse(new TextDecoder().decode(plaintext)) as VaultLockData;
+            this.masterKey = await window.crypto.subtle.unwrapKey(
+                "raw",
+                this.base64ToArrayBuffer(lockData.encryptedMasterKey),
+                innerKey,
+                { name: "AES-GCM", iv: new Uint8Array(this.base64ToArrayBuffer(lockData.iv)) },
+                "AES-GCM",
+                true,
+                ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
+            );
+        } catch (e) {
+            this.masterKey = null;
+            throw new Error("Invalid password");
+        }
+    }
+
+    /** v1 (legacy): unsalted SHA-256 outer layer + PBKDF2-SHA256 inner layer. */
+    private async unlockV1(encryptedBlob: string, password: string): Promise<void> {
         let lockData: VaultLockData;
         try {
             lockData = await this.unwrapLockFile(encryptedBlob, password);
@@ -77,11 +99,10 @@ export class MasterKeyManager implements ICryptoEngine {
             throw new Error("Invalid password");
         }
 
-        // Inner layer: PBKDF2-derived key unwraps the master key
         const salt = this.base64ToArrayBuffer(lockData.salt);
         const iv = this.base64ToArrayBuffer(lockData.iv);
         const wrappedKeyBuffer = this.base64ToArrayBuffer(lockData.encryptedMasterKey);
-        const wk = await deriveKey(password, new Uint8Array(salt));
+        const wk = await deriveKey(password, new Uint8Array(salt), lockData.iterations ?? 100000);
 
         try {
             this.masterKey = await window.crypto.subtle.unwrapKey(
@@ -97,6 +118,33 @@ export class MasterKeyManager implements ICryptoEngine {
             this.masterKey = null;
             throw new Error("Invalid password");
         }
+    }
+
+    private async buildLockV2(password: string): Promise<string> {
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        const { outerKey, innerKey } = await deriveLockKeysV2(password, salt);
+        const wrapIv = window.crypto.getRandomValues(new Uint8Array(12));
+        const wrapped = await window.crypto.subtle.wrapKey("raw", this.masterKey!, innerKey, {
+            name: "AES-GCM",
+            iv: wrapIv,
+        });
+        const lockData: VaultLockData = {
+            salt: this.arrayBufferToBase64(salt),
+            encryptedMasterKey: this.arrayBufferToBase64(wrapped),
+            iv: this.arrayBufferToBase64(wrapIv),
+            algo: `PBKDF2-${LOCK_V2_KDF.hash}-${LOCK_V2_KDF.iterations}-AES-GCM-256`,
+            iterations: LOCK_V2_KDF.iterations,
+        };
+        const { iv, ciphertext } = await encryptData(
+            outerKey,
+            new TextEncoder().encode(JSON.stringify(lockData)).buffer,
+        );
+        const out = new Uint8Array(16 + 12 + ciphertext.byteLength);
+        out.set(salt, 0);
+        out.set(iv, 16);
+        out.set(new Uint8Array(ciphertext), 28);
+        this.legacyLockUnlocked = false;
+        return LOCK_V2_PREFIX + this.arrayBufferToBase64(out);
     }
 
     async encrypt(data: ArrayBuffer): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }> {
@@ -243,6 +291,24 @@ export class MasterKeyManager implements ICryptoEngine {
 
     // --- Outer encryption: vault-lock file wrapping ---
 
+    /** v1 writer, kept only so tests can build legacy lock files. */
+    async buildLegacyLockForTest(password: string): Promise<string> {
+        if (!this.masterKey) throw new Error("Vault is locked.");
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        const wk = await deriveKey(password, salt);
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const wrapped = await window.crypto.subtle.wrapKey("raw", this.masterKey, wk, { name: "AES-GCM", iv });
+        return this.wrapLockFile(
+            {
+                salt: this.arrayBufferToBase64(salt),
+                encryptedMasterKey: this.arrayBufferToBase64(wrapped),
+                iv: this.arrayBufferToBase64(iv),
+                algo: "PBKDF2-SHA256-100k-AES-GCM-256",
+            },
+            password,
+        );
+    }
+
     private async wrapLockFile(lockData: VaultLockData, hashedPassword: string): Promise<string> {
         const outerKey = await deriveOuterKey(hashedPassword);
         const plaintext = new TextEncoder().encode(JSON.stringify(lockData));
@@ -269,6 +335,10 @@ export class MasterKeyManager implements ICryptoEngine {
 
     private arrayBufferToBase64(buffer: Uint8Array | ArrayBuffer): string {
         return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    }
+
+    private base64ToBytes(base64: string): Uint8Array {
+        return new Uint8Array(this.base64ToArrayBuffer(base64));
     }
 
     private base64ToArrayBuffer(base64: string): ArrayBuffer {

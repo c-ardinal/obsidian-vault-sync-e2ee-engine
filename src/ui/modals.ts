@@ -335,6 +335,24 @@ export class E2EEUnlockModal extends Modal {
                             blob,
                             hashedPassword,
                         );
+                        // Old (v1) lock files use a fast, unsalted outer key that allows
+                        // offline password guessing. Re-save in the v2 format once unlocked.
+                        if (this.ctx.cryptoEngine.needsLockMigration?.()) {
+                            try {
+                                const upgraded =
+                                    await this.ctx.cryptoEngine.updatePassword(hashedPassword);
+                                await this.ctx.vaultLockService.uploadLockFile(upgraded);
+                                await this.ctx.log(
+                                    "E2EE: vault-lock upgraded to the v2 key format.",
+                                    "info",
+                                );
+                            } catch (err) {
+                                await this.ctx.log(
+                                    `E2EE: vault-lock upgrade failed, will retry next unlock: ${err}`,
+                                    "warn",
+                                );
+                            }
+                        }
                         await this.ctx.notify("e2eeUnlockSuccess");
 
                         // Sync auto-unlock setting (non-critical, don't block unlock)
