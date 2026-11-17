@@ -44,5 +44,6 @@ jobs:
                   name: Release ${{ env.VERSION }}
                   files: |
                       dist/e2ee-engine.js
+                      dist/vault-sync-e2ee-engine.zip
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
