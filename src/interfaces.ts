@@ -102,8 +102,8 @@ export interface ICryptoEngine {
      */
     needsLockMigration?(): boolean;
 
-    encrypt(data: ArrayBuffer): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }>;
-    decrypt(ciphertext: ArrayBuffer, iv: Uint8Array): Promise<ArrayBuffer>;
+    encrypt(data: ArrayBuffer, aad?: Uint8Array): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }>;
+    decrypt(ciphertext: ArrayBuffer, iv: Uint8Array, aad?: Uint8Array): Promise<ArrayBuffer>;
 
     /** Cipher metadata for AES-256-GCM. */
     readonly ivSize: number;
@@ -116,23 +116,31 @@ export interface ICryptoEngine {
     /** Return the optimal plaintext chunk size so encrypted chunks align to 256 KiB boundaries. */
     getOptimalChunkSize(): number;
 
-    // Chunked encryption (VSC2)
-    /** Check whether data starts with the VSC2 chunked format magic header. */
+    // Chunked encryption (writes VSC3; reads VSC3 and the older VSC2)
+    /** Check whether data starts with a chunked-format (VSC2/VSC3) magic header. */
     isChunkedFormat(data: ArrayBuffer): boolean;
-    /** Encrypt data into VSC2 chunked format. */
+    /** Encrypt data into VSC3 chunked format. */
     encryptChunked(data: ArrayBuffer): Promise<ArrayBuffer>;
-    /** Decrypt VSC2 chunked-format data back to plaintext. */
+    /** Decrypt VSC3 or VSC2 chunked-format data back to plaintext. */
     decryptChunked(data: ArrayBuffer): Promise<ArrayBuffer>;
-    /** Calculate the total encrypted size for a given plaintext size in VSC2 format. */
+    /** Calculate the total encrypted size for a given plaintext size in VSC3 format. */
     calculateChunkedSize(plaintextSize: number): number;
-    /** Build the VSC2 header for a given plaintext size. */
+    /** Build a VSC3 header (with a fresh file nonce) for a given plaintext size. */
     buildChunkedHeader(plaintextSize: number): Uint8Array;
-    /** Encrypt data as a stream of chunks for use with resumable uploads. */
-    encryptChunks(data: ArrayBuffer): AsyncGenerator<{
+    /**
+     * Encrypt data as a stream of chunks for use with resumable uploads.
+     * Pass the header from buildChunkedHeader that is written in front of the
+     * chunks; each chunk is authenticated together with it and its position.
+     */
+    encryptChunks(
+        data: ArrayBuffer,
+        header?: Uint8Array,
+    ): AsyncGenerator<{
         iv: Uint8Array;
         ciphertext: ArrayBuffer;
         index: number;
         totalChunks: number;
+        header: Uint8Array;
     }>;
 
     // Recovery

@@ -240,3 +240,30 @@ describe("Lock file v2 and migration from v1", () => {
     });
 });
 
+
+describe("Chunked format through the engine API", () => {
+    const password = "chunk-test-password";
+    it("streams VSC3 the way the plugin uploads it, and reads it back", async () => {
+        const km = new MasterKeyManager();
+        await km.initializeNewVault(password);
+        const chunk = km.getOptimalChunkSize();
+        const plain = new Uint8Array(chunk * 2 + 1000).map((_, i) => i & 0xff).buffer;
+
+        const header = km.buildChunkedHeader(plain.byteLength);
+        const out = new Uint8Array(km.calculateChunkedSize(plain.byteLength));
+        out.set(header, 0);
+        let o = header.byteLength;
+        for await (const c of km.encryptChunks(plain, header)) {
+            out.set(c.iv, o);
+            o += c.iv.byteLength;
+            out.set(new Uint8Array(c.ciphertext), o);
+            o += c.ciphertext.byteLength;
+        }
+        expect(o).toBe(out.byteLength);
+        expect(km.isChunkedFormat(out.buffer)).toBe(true);
+        // Buffer.equals: toEqual on multi-MiB arrays takes seconds
+        const same = (a: ArrayBuffer) => Buffer.from(a).equals(Buffer.from(plain));
+        expect(same(await km.decryptChunked(out.buffer))).toBe(true);
+        expect(same(await km.decryptChunked(await km.encryptChunked(plain)))).toBe(true);
+    });
+});
