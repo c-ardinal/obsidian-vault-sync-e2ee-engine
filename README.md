@@ -47,17 +47,25 @@ Once the E2EE Engine is installed, the following commands become available in Ob
 
 Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using this plugin without E2EE, follow the [Recovery Procedure](#️-recovery-procedure).
 
-### From Release
+### From Vault-Sync settings (recommended, works on mobile)
+
+1. In Vault-Sync's settings, tap **Install...** under "End-to-End Encryption (E2EE)" (or run `E2EE: Install Encryption Engine` from the command palette)
+2. Tap **Open release page** and download `e2ee-engine.js` from the latest release
+    - Only the latest version can be used. Vault-Sync rejects other versions.
+3. Confirm the two statements in the dialog, then tap **Choose file** and pick the downloaded file
+4. Vault-Sync verifies the file, saves it, and activates it without a restart
+5. Run `E2EE: Start Vault Encryption` from the command palette and follow the setup wizard
+
+On a device whose vault is already encrypted from another device, the install dialog opens by itself and then asks for the password.
+
+### Manual copy
 
 1. Download the latest `e2ee-engine.js` from the [Releases page](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases)
-    - Only the latest version can be used. Vault-Sync will not load older versions even if installed.
 2. Place it in your Vault-Sync plugin directory:
     ```
     <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
     ```
-3. Restart Obsidian
-4. Run the E2EE setup command from the command palette
-5. The E2EE setup wizard will appear — follow the prompts to set your password and migrate your vault
+3. Restart Obsidian, then run the E2EE setup command from the command palette
 
 ### From Source
 
