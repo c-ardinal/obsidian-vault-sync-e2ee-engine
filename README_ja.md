@@ -47,36 +47,35 @@ E2EE Engine をインストール後、Obsidian のコマンドパレットか�
 
 注意: E2EEを有効化した場合、無効化することはできません。E2EEを使用しない状態で本プラグインを使用し続けたい場合は [#復旧手順](#️復旧手順) を実行して下さい。
 
-### リリースから
+### Vault-Sync に同梱（インストール不要）
 
-1. [リリースページ](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases) から最新版の `e2ee-engine.js` をダウンロード
-    - 最新版以外のバージョンは使用できません。インストールしてもVault-Syncは本ファイルをロードしません。
-2. Vault-Sync のプラグインディレクトリに配置:
-    ```
-    <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
-    ```
-3. Obsidian を再起動
-4. コマンドパレットから暗号化開始コマンドを実行
-5. E2EE セットアップウィザードが表示されます。指示に従ってパスワード設定と Vault 移行を進めて下さい
+本エンジンは Vault-Sync の `main.js` に組み込まれています。
+PC・スマホとも、`e2ee-engine.js` をダウンロード・コピーする必要はありません。
 
-### ソースから
+1. Vault-Sync をインストール
+2. どれか1台でコマンドパレットから `E2EE: Vaultの暗号化を開始する` を実行
+3. セットアップウィザードに従ってパスワード設定と Vault 移行を進める
+4. 他の端末では Vault-Sync を入れるだけで、暗号化済み Vault を検出してパスワード入力を求めます
 
-1. 依存関係をインストール:
+プラグインフォルダに残っている `e2ee-engine.js` は無視されるので、削除して構いません。
 
-    ```bash
-    npm install
-    ```
+### 開発
 
-2. エンジンをビルド:
+Vault-Sync は本リポジトリを git submodule（`e2ee-engine/`）としてコミット固定で取り込んでいます。
+エンジンの変更を反映するには、ここでマージした後、Vault-Sync 側でサブモジュールの参照を進めます:
 
-    ```bash
-    npm run build
-    ```
+```bash
+cd e2ee-engine && git fetch && git checkout <commit> && cd ..
+git add e2ee-engine && git commit
+```
 
-3. `dist/e2ee-engine.js` をプラグインディレクトリにコピー:
-    ```
-    <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
-    ```
+本リポジトリ単体のテストとビルド:
+
+```bash
+npm install
+npm test
+npm run build
+```
 
 ---
 
@@ -101,13 +100,13 @@ E2EE Engine をインストール後、Obsidian のコマンドパレットか�
 
 ## 🔧 技術仕様
 
-| 項目         | 値                                                          |
-| ------------ | ----------------------------------------------------------- |
-| フォーマット | CommonJS (CJS)                                              |
-| 暗号化方式   | AES-256-GCM（Web Crypto API）                               |
-| 鍵導出       | PBKDF2-SHA256、600,000 イテレーション                       |
-| IV サイズ    | 12 バイト（操作ごとにランダム生成）                         |
-| ローダー     | Vault-Sync がセキュアな `new Function` 評価器で動的にロード |
+| 項目         | 値                                                            |
+| ------------ | ------------------------------------------------------------- |
+| フォーマット | CommonJS (CJS)                                                |
+| 暗号化方式   | AES-256-GCM（Web Crypto API）                                 |
+| 鍵導出       | PBKDF2-SHA256、600,000 イテレーション                         |
+| IV サイズ    | 12 バイト（操作ごとにランダム生成）                           |
+| 配布形態     | Vault-Sync の `main.js` に同梱（git submodule、コミット固定） |
 
 ---
 

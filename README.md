@@ -47,36 +47,35 @@ Once the E2EE Engine is installed, the following commands become available in Ob
 
 Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using this plugin without E2EE, follow the [Recovery Procedure](#️-recovery-procedure).
 
-### From Release
+### Bundled with Vault-Sync (nothing to install)
 
-1. Download the latest `e2ee-engine.js` from the [Releases page](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases)
-    - Only the latest version can be used. Vault-Sync will not load older versions even if installed.
-2. Place it in your Vault-Sync plugin directory:
-    ```
-    <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
-    ```
-3. Restart Obsidian
-4. Run the E2EE setup command from the command palette
-5. The E2EE setup wizard will appear — follow the prompts to set your password and migrate your vault
+This engine is compiled into Vault-Sync's `main.js`.
+You do not need to download or copy `e2ee-engine.js`, on desktop or mobile.
 
-### From Source
+1. Install Vault-Sync
+2. Run `E2EE: Start Vault Encryption` from the command palette on one device
+3. Follow the setup wizard to set your password and migrate your vault
+4. On your other devices, just install Vault-Sync: it detects the encrypted vault and asks for the password
 
-1. Install dependencies:
+A leftover `e2ee-engine.js` in the plugin folder is ignored and can be deleted.
 
-    ```bash
-    npm install
-    ```
+### Development
 
-2. Build the engine:
+Vault-Sync includes this repository as a git submodule (`e2ee-engine/`) pinned to a commit.
+To ship an engine change, merge it here, then move the submodule pointer in Vault-Sync:
 
-    ```bash
-    npm run build
-    ```
+```bash
+cd e2ee-engine && git fetch && git checkout <commit> && cd ..
+git add e2ee-engine && git commit
+```
 
-3. Copy `dist/e2ee-engine.js` to your plugin directory:
-    ```
-    <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
-    ```
+To run this repository's own tests and build:
+
+```bash
+npm install
+npm test
+npm run build
+```
 
 ---
 
@@ -101,13 +100,13 @@ The file is not stored locally — it is located on cloud storage at:
 
 ## 🔧 Technical Details
 
-| Property       | Value                                                                |
-| -------------- | -------------------------------------------------------------------- |
-| Format         | CommonJS (CJS)                                                       |
-| Encryption     | AES-256-GCM via Web Crypto API                                       |
-| Key Derivation | PBKDF2-SHA256, 600,000 iterations                                    |
-| IV Size        | 12 bytes (random per operation)                                      |
-| Loader         | Dynamically loaded by Vault-Sync via secure `new Function` evaluator |
+| Property       | Value                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| Format         | CommonJS (CJS)                                                      |
+| Encryption     | AES-256-GCM via Web Crypto API                                      |
+| Key Derivation | PBKDF2-SHA256, 600,000 iterations                                   |
+| IV Size        | 12 bytes (random per operation)                                     |
+| Distribution   | Compiled into Vault-Sync's `main.js` (git submodule, pinned commit) |
 
 ---
 
