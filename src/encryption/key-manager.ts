@@ -16,8 +16,8 @@ import {
     isChunkedFormat as _isChunkedFormat,
     encryptChunked as _encryptChunked,
     decryptChunked as _decryptChunked,
-    calculateVSC2Size,
-    buildVSC2Header as _buildVSC2Header,
+    calculateVSC3Size,
+    buildVSC3Header as _buildVSC3Header,
     encryptChunks as _encryptChunks,
 } from "./chunked-crypto";
 import {
@@ -147,14 +147,17 @@ export class MasterKeyManager implements ICryptoEngine {
         return LOCK_V2_PREFIX + this.arrayBufferToBase64(out);
     }
 
-    async encrypt(data: ArrayBuffer): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }> {
+    async encrypt(
+        data: ArrayBuffer,
+        aad?: Uint8Array,
+    ): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array }> {
         if (!this.masterKey) throw new Error("Locked");
-        return await encryptData(this.masterKey, data);
+        return await encryptData(this.masterKey, data, aad);
     }
 
-    async decrypt(ciphertext: ArrayBuffer, iv: Uint8Array): Promise<ArrayBuffer> {
+    async decrypt(ciphertext: ArrayBuffer, iv: Uint8Array, aad?: Uint8Array): Promise<ArrayBuffer> {
         if (!this.masterKey) throw new Error("Locked");
-        return await decryptData(this.masterKey, ciphertext, iv);
+        return await decryptData(this.masterKey, ciphertext, iv, aad);
     }
 
     async encryptToBlob(data: ArrayBuffer): Promise<ArrayBuffer> {
@@ -192,22 +195,31 @@ export class MasterKeyManager implements ICryptoEngine {
     }
 
     calculateChunkedSize(plaintextSize: number): number {
-        return calculateVSC2Size(plaintextSize, this.getOptimalChunkSize(), this.ivSize, this.tagSize);
+        return calculateVSC3Size(plaintextSize, this.getOptimalChunkSize(), this.ivSize, this.tagSize);
     }
 
     buildChunkedHeader(plaintextSize: number): Uint8Array {
         const chunkSize = this.getOptimalChunkSize();
         const totalChunks = Math.max(1, Math.ceil(plaintextSize / chunkSize));
-        return _buildVSC2Header(chunkSize, totalChunks);
+        return _buildVSC3Header(chunkSize, totalChunks);
     }
 
-    async *encryptChunks(data: ArrayBuffer): AsyncGenerator<{
+    /**
+     * Pass the header from `buildChunkedHeader` that is written in front of the
+     * chunks: each chunk is bound to it. Without one, each item carries a
+     * generated `header` that must be written instead.
+     */
+    async *encryptChunks(
+        data: ArrayBuffer,
+        header?: Uint8Array,
+    ): AsyncGenerator<{
         iv: Uint8Array;
         ciphertext: ArrayBuffer;
         index: number;
         totalChunks: number;
+        header: Uint8Array;
     }> {
-        yield* _encryptChunks(data, this, this.getOptimalChunkSize());
+        yield* _encryptChunks(data, this, this.getOptimalChunkSize(), header);
     }
 
     async exportRecoveryCode(): Promise<string> {

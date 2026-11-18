@@ -47,12 +47,14 @@ export async function deriveKey(
 export async function encryptData(
     key: CryptoKey,
     data: ArrayBuffer,
+    aad?: Uint8Array,
 ): Promise<{ iv: Uint8Array; ciphertext: ArrayBuffer }> {
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const ciphertext = await window.crypto.subtle.encrypt(
         {
             name: "AES-GCM",
             iv,
+            ...(aad ? { additionalData: aad } : {}),
         } as AesGcmParams,
         key,
         data,
@@ -64,11 +66,13 @@ export async function decryptData(
     key: CryptoKey,
     data: ArrayBuffer,
     iv: Uint8Array,
+    aad?: Uint8Array,
 ): Promise<ArrayBuffer> {
     return await window.crypto.subtle.decrypt(
         {
             name: "AES-GCM",
             iv,
+            ...(aad ? { additionalData: aad } : {}),
         } as AesGcmParams,
         key,
         data,
