@@ -1,4 +1,5 @@
 import { VaultLockData, ICryptoEngine, SettingSection, E2EEPluginContext } from "../interfaces";
+import { getStrings } from "../i18n";
 import {
     generateMasterKey,
     deriveKey,
@@ -269,6 +270,11 @@ export class MasterKeyManager implements ICryptoEngine {
 
     showRecoveryImportModal(ctx: E2EEPluginContext): void {
         new E2EERecoveryImportModal(ctx.app, ctx).open();
+    }
+
+    /** This add-on's display text for a UI language (see src/i18n.ts). */
+    getStrings(lang: string): Record<string, string> {
+        return getStrings(lang);
     }
 
     getSettingsSections(ctx: E2EEPluginContext): SettingSection[] {

@@ -155,4 +155,6 @@ export interface ICryptoEngine {
     showRecoveryExportModal(ctx: E2EEPluginContext): void;
     showRecoveryImportModal(ctx: E2EEPluginContext): void;
     getSettingsSections(ctx: E2EEPluginContext): SettingSection[];
+    /** Display text for a UI language ("en", "ja", ...). Vault-Sync's own dictionary has none of it. */
+    getStrings(lang: string): Record<string, string>;
 }
