@@ -1,7 +1,13 @@
 import { Modal, Setting, App, Notice, ButtonComponent, TextAreaComponent } from "obsidian";
 import { hashPassword } from "../encryption/crypto-primitives";
+import { isPasswordAcceptable } from "../encryption/password-policy";
 import type { E2EEPluginContext, MigrationProgress } from "../interfaces";
-import { addPasswordInput, createAsciiWarning, renderStrengthIndicator } from "./password-field";
+import {
+    addPasswordInput,
+    addPasswordRuleHint,
+    createAsciiWarning,
+    renderStrengthIndicator,
+} from "./password-field";
 
 /** Set text content with \n → line breaks */
 function setTextWithBreaks(el: HTMLElement, text: string): void {
@@ -89,10 +95,8 @@ export class E2EESetupModal extends Modal {
         // ASCII-only warning (hidden by default)
         this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
 
-        // Allowed characters hint
-        const hint = contentEl.createDiv();
-        hint.style.cssText = "color:var(--text-muted);font-size:0.8em;margin-top:-8px;margin-bottom:8px;white-space:pre-line;";
-        hint.setText(this.ctx.t("e2eeSetupPasswordHint"));
+        // Length, strength and allowed characters hint
+        addPasswordRuleHint(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
         this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
@@ -106,7 +110,7 @@ export class E2EESetupModal extends Modal {
         this.statsText = mgContainer.createDiv({ cls: "vault-sync-migration-status" });
         mgContainer.hide();
 
-        // Start Migration button (disabled until password >= 8 chars)
+        // Start Migration button (disabled until the password meets the policy)
         new Setting(contentEl).addButton((btn) => {
             this.startBtn = btn;
             btn.setButtonText(this.ctx.t("e2eeSetupStartButton"))
@@ -189,8 +193,9 @@ export class E2EESetupModal extends Modal {
 
                         await this.ctx.migrationService.finalizeMigration(adapter);
 
-                        // Save password to SecureStorage for auto-unlock
-                        if (this.ctx.secureStorage) {
+                        // Save the password for auto-unlock only when the user turned it on.
+                        // Setup has no such toggle, so this is off unless already enabled.
+                        if (this.ctx.settings.e2eeAutoUnlock && this.ctx.secureStorage) {
                             try {
                                 await this.ctx.secureStorage.setExtraSecret(
                                     "e2ee-password",
@@ -204,6 +209,11 @@ export class E2EESetupModal extends Modal {
                                 console.error("Failed to save password to SecureStorage", err);
                                 await this.ctx.notify("e2eeSetupKeychainFailed");
                             }
+                        } else if (this.ctx.secureStorage) {
+                            // A password saved for an earlier vault must not linger here.
+                            try {
+                                await this.ctx.secureStorage.removeExtraSecret("e2ee-password");
+                            } catch (_) { /* non-critical */ }
                         }
 
                         this.ctx.settings.e2eeEnabled = true;
@@ -240,7 +250,9 @@ export class E2EESetupModal extends Modal {
 
     private updateButtonState() {
         if (this.startBtn) {
-            this.startBtn.setDisabled(this.password.length < 8);
+            this.startBtn.setDisabled(
+                !isPasswordAcceptable(this.password, this.ctx.checkPasswordStrength),
+            );
         }
     }
 
@@ -432,6 +444,7 @@ export class E2EEPasswordChangeModal extends Modal {
 
         // ASCII-only warning (hidden by default)
         this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
+        addPasswordRuleHint(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
         this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
@@ -485,7 +498,7 @@ export class E2EEPasswordChangeModal extends Modal {
 
     private updateButtonState() {
         if (this.changeBtn) {
-            const valid = this.newPassword.length >= 8
+            const valid = isPasswordAcceptable(this.newPassword, this.ctx.checkPasswordStrength)
                 && this.newPassword === this.confirmPassword;
             this.changeBtn.setDisabled(!valid);
         }
@@ -604,6 +617,7 @@ export class E2EERecoveryImportModal extends Modal {
 
         // ASCII-only warning
         this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
+        addPasswordRuleHint(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
         this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
@@ -636,8 +650,8 @@ export class E2EERecoveryImportModal extends Modal {
 
                         await this.ctx.vaultLockService.uploadLockFile(newBlob);
 
-                        // Save new password for auto-unlock
-                        if (this.ctx.secureStorage) {
+                        // Replace the saved password only when auto-unlock is on
+                        if (this.ctx.settings.e2eeAutoUnlock && this.ctx.secureStorage) {
                             try {
                                 const hashedPassword = await hashPassword(this.newPassword);
                                 await this.ctx.secureStorage.setExtraSecret(
@@ -665,7 +679,7 @@ export class E2EERecoveryImportModal extends Modal {
                 && this.recoveryCode.length >= 40
                 && this.recoveryCode.length <= 48;
             const valid = isValidBase64
-                && this.newPassword.length >= 8
+                && isPasswordAcceptable(this.newPassword, this.ctx.checkPasswordStrength)
                 && this.newPassword === this.confirmPassword;
             this.restoreBtn.setDisabled(!valid);
         }

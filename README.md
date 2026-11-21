@@ -5,8 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An external End-to-End Encryption engine for [Vault-Sync](https://github.com/c-ardinal/obsidian-vault-sync).
-When installed, all vault data is encrypted on your device before upload and decrypted locally after download.
-Your cloud provider has no way to see plaintext content.
+When installed, the contents of your vault files are encrypted on your device before upload and decrypted locally after download.
+Your cloud provider cannot read file contents. File and folder names, sizes and modification times are **not** encrypted: see [What is and isn't protected](#-what-is-and-isnt-protected).
 
 ---
 
@@ -14,14 +14,14 @@ Your cloud provider has no way to see plaintext content.
 
 - **AES-256-GCM Encryption**:
     - Industry-standard authenticated encryption for all vault files
-- **PBKDF2 Key Derivation**:
-    - Master key derived from your password with 600,000 iterations
+- **Password-protected Master Key**:
+    - Files are encrypted with a random 256-bit master key. Your password protects that key through PBKDF2-HMAC-SHA512 (210,000 iterations, random salt)
 - **Random IV per File**:
     - Each encryption operation uses a unique initialization vector, preventing ciphertext pattern analysis
 - **Password Strength Checker**:
-    - Built-in strength indicator during setup (powered by zxcvbn-based scoring)
+    - Strength indicator for new passwords (a simple built-in rating). A new password needs at least 12 characters and must not be rated "Weak"
 - **Auto-Unlock**:
-    - Optionally store your password in Obsidian's secure storage (Keychain) for seamless startup
+    - Off by default. When turned on, a value derived from your password is stored in Obsidian's SecretStorage, so anyone with access to the device can open the vault
 - **Transparent Integration**:
     - Vault-Sync's smart sync (3-way merge, conflict detection, revision history) works seamlessly with encrypted data
 - **One-Click Migration**:
@@ -69,7 +69,7 @@ On a device whose vault is already encrypted from another device, the install di
 1. Download the latest `e2ee-engine.js` from the [Releases page](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases)
 2. Place it in your Vault-Sync plugin directory:
     ```
-    <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
+    <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
     ```
 3. Restart Obsidian, then run the E2EE setup command from the command palette
 
@@ -91,7 +91,7 @@ Installing by hand also means you agree to the [Additional Terms of Use](TERMS.m
 
 3. Copy `dist/e2ee-engine.js` to your plugin directory:
     ```
-    <Your Vault>/.obsidian/plugins/obsidian-vault-sync/e2ee-engine.js
+    <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
     ```
 
 `npm run build` also writes `dist/vault-sync-e2ee-engine.zip`, the add-on package Vault-Sync imports (`addon.json` manifest, engine, terms), and prints the SHA-256 hash Vault-Sync pins for each file. Changing the engine, the version or either `TERMS` file needs a Vault-Sync release with the new hashes.
@@ -104,16 +104,27 @@ Installing by hand also means you agree to the [Additional Terms of Use](TERMS.m
 
 The `vault-lock.vault` file is stored alongside your encrypted vault and contains:
 
-- Encrypted master key material
-- PBKDF2 salt and iteration count
-- Password hint (if configured)
+- The master key, encrypted with a key derived from your password
+- The PBKDF2 salt
+
+The whole file is itself encrypted with a second key from the same derivation, so it reveals nothing without the password.
 
 This file is required to unlock the vault. Without it and your password, data cannot be decrypted.
 The file is not stored locally — it is located on cloud storage at:
 
 ```
-  <Your Vault>/.obsidian/plugins/obsidian-vault-sync/data/remote/vault-lock.vault
+  <Your Vault>/.obsidian/plugins/cardinal-vault-sync/data/remote/vault-lock.vault
 ```
+
+(Vaults set up before the plugin ID change also keep a copy under `obsidian-vault-sync/`.)
+
+### 🛡 What is and isn't protected
+
+- **Encrypted**: the contents of every synced file, and Vault-Sync's index (file list and hashes).
+- **Not encrypted**: file and folder names and paths, file sizes (approximately), modification times, the number of files, and when they change. Do not put secrets in file names.
+- **Tampering**: changes to encrypted contents are detected. For large files, chunks that were reordered, dropped or taken from another file are detected too. For other files, someone who can write to your cloud storage could swap the encrypted contents of two files, or put back an older version, without it being detected.
+- **Changing the password does not change the master key.** Anyone who already has the old password together with an older copy of `vault-lock.vault` (cloud version history keeps it for about 30 days on Google Drive), or who has the recovery code, can still decrypt. The recovery code *is* the master key and never expires. If you think either leaked, re-create the vault with the [Recovery Procedure](#recovery-procedure) so a new master key is used.
+- **Weak passwords**: anyone holding `vault-lock.vault` can test password guesses offline. PBKDF2 slows each guess, but a short or common password still falls quickly. Use a long passphrase.
 
 ---
 
@@ -123,8 +134,10 @@ The file is not stored locally — it is located on cloud storage at:
 | -------------- | -------------------------------------------------------------------- |
 | Format         | CommonJS (CJS)                                                       |
 | Encryption     | AES-256-GCM via Web Crypto API                                       |
-| Key Derivation | PBKDF2-SHA256, 600,000 iterations                                    |
+| Master Key     | Random AES-256 key, wrapped with AES-GCM                             |
+| Key Derivation | PBKDF2-HMAC-SHA512, 210,000 iterations, 16-byte random salt          |
 | IV Size        | 12 bytes (random per operation)                                      |
+| Large Files    | Chunked format (VSC3): each chunk bound to its file and position     |
 | Loader         | Dynamically loaded by Vault-Sync via secure `new Function` evaluator |
 
 ---
