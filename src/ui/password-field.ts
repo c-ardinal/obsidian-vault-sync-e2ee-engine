@@ -52,6 +52,14 @@ export function addPasswordInput(opts: {
     return inputEl;
 }
 
+/** Shows the password rules (length, strength, allowed characters) under a new-password field. */
+export function addPasswordRuleHint(container: HTMLElement, t: (key: string) => string): void {
+    const hint = container.createDiv();
+    hint.style.cssText =
+        "color:var(--text-muted);font-size:0.8em;margin-top:-8px;margin-bottom:8px;white-space:pre-line;";
+    hint.setText(t("e2eeSetupPasswordHint"));
+}
+
 /**
  * Creates an ASCII-only warning element, hidden by default.
  * Returns a show/hide control function.
