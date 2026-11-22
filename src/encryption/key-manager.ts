@@ -1,4 +1,5 @@
-import { VaultLockData, ICryptoEngine, SettingSection, E2EEPluginContext } from "../interfaces";
+import { VaultLockData, ICryptoEngine, SettingSection, E2EEPluginContext, AddonUiContributions, AddonUiHost } from "../interfaces";
+import { buildUiContributions } from "../ui/contributions";
 import { getStrings } from "../i18n";
 import {
     generateMasterKey,
@@ -270,6 +271,11 @@ export class MasterKeyManager implements ICryptoEngine {
 
     showRecoveryImportModal(ctx: E2EEPluginContext): void {
         new E2EERecoveryImportModal(ctx.app, ctx).open();
+    }
+
+    /** Settings page and actions shown by Vault-Sync (see src/ui/contributions.ts). */
+    getUiContributions(ctx: E2EEPluginContext, host: AddonUiHost): AddonUiContributions {
+        return buildUiContributions(this, ctx, host);
     }
 
     /** This add-on's display text for a UI language (see src/i18n.ts). */
