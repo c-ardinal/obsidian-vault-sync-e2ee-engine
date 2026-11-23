@@ -29,9 +29,11 @@ Your cloud provider cannot read file contents. File and folder names, sizes and 
 
 ---
 
-## ⌨️ Commands (via Command Palette)
+## ⌨️ Settings page and commands
 
-Once the E2EE Engine is installed, the following commands become available in Obsidian's command palette:
+Once the E2EE Engine is installed, Vault-Sync's **Settings → Add-ons** lists a **Security (E2EE)** page (Vault-Sync 0.19 and later). It shows the encryption status and only the operations that apply right now (start, unlock, change password, recovery code, recover), plus the auto-unlock option.
+
+The same operations are also commands in Obsidian's command palette (command ids are unchanged, so existing hotkeys keep working):
 
 | Command                                | Description                                 |
 | -------------------------------------- | ------------------------------------------- |
@@ -55,12 +57,12 @@ Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using
 
 ### From Vault-Sync settings (recommended, works on mobile)
 
-1. In Vault-Sync's settings, tap **Install...** under "End-to-End Encryption (E2EE)" (or run `E2EE: Install Encryption Engine` from the command palette)
+1. In Vault-Sync's settings, tap **Install add-on...** under "Add-ons" (or run `Install add-on` from the command palette)
 2. Tap **Open release page** and download `vault-sync-e2ee-engine.zip` from the latest release
     - The zip contains the engine and its [Additional Terms of Use](TERMS.md). Only the latest version can be used; Vault-Sync rejects other versions.
 3. Tap **Choose file** and pick the downloaded zip. Vault-Sync verifies it and shows the Additional Terms
 4. Read and agree to the terms, then tap **Install**. The engine is activated without a restart
-5. Run `E2EE: Start Vault Encryption` from the command palette and follow the setup wizard
+5. Open **Add-ons → Security (E2EE)** in Vault-Sync's settings and tap **Start** next to "Start encryption" (or run `E2EE: Start Vault Encryption` from the command palette), then follow the setup wizard
 
 On a device whose vault is already encrypted from another device, the install dialog opens by itself and then asks for the password.
 
@@ -71,7 +73,7 @@ On a device whose vault is already encrypted from another device, the install di
     ```
     <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
     ```
-3. Restart Obsidian, then run the E2EE setup command from the command palette
+3. Restart Obsidian, then start encryption from **Add-ons → Security (E2EE)** in Vault-Sync's settings (or the command palette)
 
 Installing by hand also means you agree to the [Additional Terms of Use](TERMS.md).
 

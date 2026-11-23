@@ -155,6 +155,74 @@ export interface ICryptoEngine {
     showRecoveryExportModal(ctx: E2EEPluginContext): void;
     showRecoveryImportModal(ctx: E2EEPluginContext): void;
     getSettingsSections(ctx: E2EEPluginContext): SettingSection[];
+    /**
+     * This add-on's settings page and actions. Vault-Sync lists the page under
+     * Settings › Add-ons and registers the actions as commands. Vault-Sync
+     * versions without add-on pages do not call it and keep using the methods above.
+     */
+    getUiContributions(ctx: E2EEPluginContext, host: AddonUiHost): AddonUiContributions;
     /** Display text for a UI language ("en", "ja", ...). Vault-Sync's own dictionary has none of it. */
     getStrings(lang: string): Record<string, string>;
+}
+
+// --- Add-on UI contract (copy of Vault-Sync's src/addons/addon-ui.ts) ---
+
+/** One row on an add-on page. "action" runs actionId, "page" opens pageId. */
+export interface AddonSettingItem {
+    key: string;
+    type: SettingItem["type"] | "action" | "page";
+    label: string;
+    desc?: string;
+    getDesc?: (settings: any, plugin: any) => string;
+    placeholder?: string;
+    options?: Record<string, string>;
+    unit?: string;
+    limits?: { min: number; max: number; default: number; disabled?: number };
+    onChange?: (value: any, plugin: any) => Promise<void>;
+    isHidden?: (settings: any) => boolean;
+    actionId?: string;
+    pageId?: string;
+}
+
+export interface AddonSettingSection {
+    id: string;
+    title: string;
+    description?: string;
+    items: AddonSettingItem[];
+    isHidden?: (settings: any) => boolean;
+}
+
+export interface AddonAction {
+    /** Stable id, also the command id: keep it across releases (hotkeys). */
+    id: string;
+    /** Command palette name, and default row name. */
+    label: string;
+    description?: string;
+    buttonText?: string;
+    style?: "default" | "cta" | "warning";
+    /** false: settings pages only. Default true. */
+    command?: boolean;
+    isAvailable?(): boolean;
+    run(): void | Promise<void>;
+}
+
+export interface AddonPage {
+    id: string;
+    title: string;
+    description?: string;
+    /** Lucide icon name */
+    icon?: string;
+    /** Read each time the page is drawn. */
+    getSections(): AddonSettingSection[];
+}
+
+export interface AddonUiContributions {
+    pages?: AddonPage[];
+    actions?: AddonAction[];
+}
+
+export interface AddonUiHost {
+    refresh(): void;
+    openPage(pageId: string): void;
+    runAction(actionId: string): Promise<boolean>;
 }
