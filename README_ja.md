@@ -59,7 +59,7 @@ E2EE Engine のインストール後、Vault-Sync の **設定 → アドオン*
 
 1. Vault-Syncの設定画面「アドオン」の **アドオンを導入...** をタップ（またはコマンドパレットから `Vault-Sync: アドオン導入画面を表示` を実行）
 2. **ダウンロードページへ移動** をタップし、最新リリースの `vault-sync-e2ee-engine.zip` をダウンロード
-    - zipにはエンジンと[追加利用条件](TERMS_ja.md)が同梱されています。最新以外のバージョンは、Vault-Syncが拒否するため使用不可能です。
+    - zipにはエンジンと[追加利用条件](TERMS_ja.md)が同梱されています。最新版以外のバージョンは、Vault-Syncが拒否するため使用不可能です。
 3. **ファイルを選択** でダウンロードしたzipを選択。Vault-Syncが検証し、追加利用条件を表示します
 4. 追加利用条件を確認して同意し、**導入する** をタップ。再起動不要で有効化されます
 5. Vault-Syncの設定画面 **アドオン → セキュリティ (E2EE)** の「暗号化の開始」で **開始** をタップ（またはコマンドパレットから `E2EE: Vaultの暗号化を開始する` を実行）し、セットアップウィザードを完了してください
@@ -68,7 +68,7 @@ E2EE Engine のインストール後、Vault-Sync の **設定 → アドオン*
 
 ### 手動コピーで導入（上級者向け）
 
-1. [リリースページ](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases) から最新バージョンの `e2ee-engine.js` をダウンロード
+1. [リリースページ](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases) から最新版の `e2ee-engine.js` をダウンロード
 2. Vault-Sync のプラグインディレクトリに配置:
     ```
     <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
