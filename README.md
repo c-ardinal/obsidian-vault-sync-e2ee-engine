@@ -57,8 +57,8 @@ Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using
 
 ### From Vault-Sync settings (recommended, works on mobile)
 
-1. In Vault-Sync's settings, tap **Install add-on...** under "Add-ons" (or run `Install add-on` from the command palette)
-2. Tap **Open release page** and download `vault-sync-e2ee-engine.zip` from the latest release
+1. In Vault-Sync's settings, tap **Install add-on...** under "Add-ons" (or run `Vault-Sync: Show add-on install` from the command palette)
+2. Tap **Open download page** and download `vault-sync-e2ee-engine.zip` from the latest release
     - The zip contains the engine and its [Additional Terms of Use](TERMS.md). Only the latest version can be used; Vault-Sync rejects other versions.
 3. Tap **Choose file** and pick the downloaded zip. Vault-Sync verifies it and shows the Additional Terms
 4. Read and agree to the terms, then tap **Install**. The engine is activated without a restart
@@ -140,7 +140,7 @@ The file is not stored locally — it is located on cloud storage at:
 | Key Derivation | PBKDF2-HMAC-SHA512, 210,000 iterations, 16-byte random salt          |
 | IV Size        | 12 bytes (random per operation)                                      |
 | Large Files    | Chunked format (VSC3): each chunk bound to its file and position     |
-| Loader         | Dynamically loaded by Vault-Sync via secure `new Function` evaluator |
+| Loader         | Loaded by Vault-Sync as a module, after a SHA-256 check of the file  |
 
 ---
 
