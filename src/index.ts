@@ -4,4 +4,4 @@ import { MasterKeyManager } from "./encryption/key-manager";
 const engine = new MasterKeyManager();
 export default engine;
 
-console.log("Vault-Sync E2EE Engine ready for loading.");
+console.log("Vault Syncer E2EE Engine ready for loading.");

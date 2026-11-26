@@ -1,5 +1,5 @@
 /**
- * Cryptographic primitives for Vault-Sync using Web Crypto API (SubtleCrypto).
+ * Cryptographic primitives for Vault Syncer using Web Crypto API (SubtleCrypto).
  */
 
 export async function generateMasterKey(): Promise<CryptoKey> {

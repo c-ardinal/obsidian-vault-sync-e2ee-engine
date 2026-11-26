@@ -1,4 +1,4 @@
-// Display text for this add-on. Vault-Sync looks these up through
+// Display text for this add-on. Vault Syncer looks these up through
 // ICryptoEngine.getStrings(), so its own UI carries no add-on specific wording.
 // Japanese text follows the project style: Sino-Japanese and katakana terms.
 
@@ -10,7 +10,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         settingE2EEStatusDisabled: "Disabled",
         settingE2EEStatusLocked: "Locked",
         settingE2EEStatusUnlocked: "Unlocked",
-        settingE2EEStatusGuide: "Manage from Settings → Vault-Sync → Add-ons, or the command palette.",
+        settingE2EEStatusGuide: "Manage from Settings → Vault Syncer → Add-ons, or the command palette.",
         e2eePageDesc: "Encryption status, unlock, password and recovery code",
         e2eeSubheaderPassword: "Password and recovery",
         e2eeActionSetupName: "Start encryption",
@@ -34,7 +34,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         noticeMigrationComplete: "[E2EE] Migration complete! Your vault is now encrypted.",
         noticeMigrationFailed: "[E2EE] Migration failed! Check logs for details.",
         noticeE2EEAutoEnabled: "[E2EE] This vault is encrypted on another device. Please enter your password to unlock.",
-        noticeVaultLocked: "[E2EE] Vault is locked. Sync paused. Unlock from Settings → Vault-Sync → Add-ons, or the command palette.",
+        noticeVaultLocked: "[E2EE] Vault is locked. Sync paused. Unlock from Settings → Vault Syncer → Add-ons, or the command palette.",
         noticeE2EEPasswordChanged: "[E2EE] Encryption password changed successfully.",
         noticeE2EERecoveryComplete: "[E2EE] Vault recovered successfully with recovery code.",
         noticeE2EEDecryptFailed: "[E2EE] Decryption failed. Wrong password or corrupted data.",
@@ -44,7 +44,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         labelE2EEShowRecovery: "E2EE: Show Recovery Code",
         labelE2EERecover: "E2EE: Recover Vault with Recovery Code",
         e2eeSetupTitle: "E2EE Setup",
-        e2eeSetupDesc: "Welcome to Vault-Sync E2EE.\nThis wizard will migrate your vault to an encrypted format.",
+        e2eeSetupDesc: "Welcome to Vault Syncer E2EE.\nThis wizard will migrate your vault to an encrypted format.",
         e2eeSetupMigratingBg: "Migration is currently running in the background.",
         e2eeSetupPasswordLabel: "Encryption Password",
         e2eeSetupPasswordDesc: "Protects your Master Key. If you lose it, only the recovery code can restore access.",
@@ -92,7 +92,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         settingE2EEStatusDisabled: "未設定",
         settingE2EEStatusLocked: "ロック中",
         settingE2EEStatusUnlocked: "解除済み",
-        settingE2EEStatusGuide: "設定 → Vault-Sync → アドオン、またはコマンドパレットから操作してください。",
+        settingE2EEStatusGuide: "設定 → Vault Syncer → アドオン、またはコマンドパレットから操作してください。",
         e2eePageDesc: "暗号化ステータス、ロック解除、パスワード、リカバリーコード",
         e2eeSubheaderPassword: "パスワード・リカバリー",
         e2eeActionSetupName: "暗号化の開始",
@@ -116,7 +116,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         noticeMigrationComplete: "✅ [E2EE] 移行完了！Vaultが暗号化されました。",
         noticeMigrationFailed: "❌ [E2EE] 移行失敗。ログを確認してください。",
         noticeE2EEAutoEnabled: "🔒 [E2EE] このVaultは他デバイスで暗号化されています。パスワードを入力してロックを解除してください。",
-        noticeVaultLocked: "🔒 [E2EE] Vaultがロック中のため同期を一時停止しています。設定 → Vault-Sync → アドオン、またはコマンドパレットからロックを解除してください。",
+        noticeVaultLocked: "🔒 [E2EE] Vaultがロック中のため同期を一時停止しています。設定 → Vault Syncer → アドオン、またはコマンドパレットからロックを解除してください。",
         noticeE2EEPasswordChanged: "✅ [E2EE] 暗号化パスワードを変更しました。",
         noticeE2EERecoveryComplete: "✅ [E2EE] リカバリーコードでVaultを復元しました。",
         noticeE2EEDecryptFailed: "❌ [E2EE] 復号に失敗しました。パスワード不一致、またはデータ破損の可能性があります。",
@@ -126,7 +126,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         labelE2EEShowRecovery: "E2EE: リカバリーコードを表示する",
         labelE2EERecover: "E2EE: リカバリーコードでVaultを復元する",
         e2eeSetupTitle: "E2EE セットアップ",
-        e2eeSetupDesc: "Vault-Sync E2EE のセットアップを開始します。\n本ウィザードでVaultを暗号化形式に移行します。",
+        e2eeSetupDesc: "Vault Syncer E2EE のセットアップを開始します。\n本ウィザードでVaultを暗号化形式に移行します。",
         e2eeSetupMigratingBg: "移行はバックグラウンドで実行中です。",
         e2eeSetupPasswordLabel: "暗号化パスワード",
         e2eeSetupPasswordDesc: "マスターキーの保護に使用します。紛失時の復元手段はリカバリーコードのみです。",
@@ -152,7 +152,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
         e2eeUnlockSuccess: "ロック解除しました！",
         e2eeUnlockFailed: "パスワードが一致しません。",
         e2eeChangePasswordTitle: "暗号化パスワードの変更",
-        e2eeChangePasswordDesc: "新規パスワードを入力してマスターキーを再暗号化します。\n既存の暗号化データは維持されます。\nマスターキー自体は変更されません。旧パスワードと旧ロックファイル（クラウドの版履歴）、またはリカバリーコードの所持者は、引き続き復号可能です。",
+        e2eeChangePasswordDesc: "新規パスワードを入力してマスターキーを再暗号化します。\n既存の暗号化データは維持されます。\nマスターキー自体は変更されません。旧パスワードと旧ロックファイル（クラウドのバージョン履歴）、またはリカバリーコードの所持者は、引き続き復号可能です。",
         e2eeChangePasswordNewLabel: "新規パスワード",
         e2eeChangePasswordConfirmLabel: "新規パスワード (確認)",
         e2eeChangePasswordButton: "パスワードを変更",
@@ -169,7 +169,7 @@ export const STRINGS: Record<string, Record<string, string>> = {
     },
 };
 
-/** Strings for a UI language; an unknown language gets {} (Vault-Sync falls back to English). */
+/** Strings for a UI language; an unknown language gets {} (Vault Syncer falls back to English). */
 export function getStrings(lang: string): Record<string, string> {
     return STRINGS[lang] ?? {};
 }

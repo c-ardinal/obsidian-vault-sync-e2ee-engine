@@ -1,10 +1,10 @@
 // Packs the built engine, its Additional Terms of Use and an add-on manifest
-// (addon.json) into one zip: Vault-Sync's generic add-on package format.
+// (addon.json) into one zip: Vault Syncer's generic add-on package format.
 //
-// Vault-Sync imports this zip: it shows the terms in-app, asks the user to
-// agree, and only then installs the engine. Vault-Sync pins the SHA-256 of
+// Vault Syncer imports this zip: it shows the terms in-app, asks the user to
+// agree, and only then installs the engine. Vault Syncer pins the SHA-256 of
 // every file in the package, so changing any of them needs a matching
-// Vault-Sync release (see the hashes printed below).
+// Vault Syncer release (see the hashes printed below).
 import fs from "fs";
 import crypto from "crypto";
 import { zipSync, strToU8 } from "fflate";
@@ -12,15 +12,15 @@ import { zipSync, strToU8 } from "fflate";
 const OUT = "./dist/vault-sync-e2ee-engine.zip";
 const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
 
-// Add-on manifest read by Vault-Sync. Display text for the add-on lives here,
-// not in Vault-Sync.
+// Add-on manifest read by Vault Syncer. Display text for the add-on lives here,
+// not in Vault Syncer.
 const manifest = {
     id: "vault-sync-e2ee-engine",
-    name: "Vault-Sync E2EE Engine",
+    name: "Vault Syncer E2EE Engine",
     version: pkg.version,
     description: {
-        en: "End-to-end encryption for Vault-Sync. Files are encrypted on your device before upload.",
-        ja: "Vault-Sync用のエンドツーエンド暗号化。ファイルはアップロード前にデバイス上で暗号化されます。",
+        en: "End-to-end encryption for Vault Syncer. Files are encrypted on your device before upload.",
+        ja: "Vault Syncer用のエンドツーエンド暗号化。ファイルはアップロード前にデバイス上で暗号化されます。",
     },
     entry: "e2ee-engine.js",
     terms: { en: "TERMS.md", ja: "TERMS_ja.md" },
@@ -57,7 +57,7 @@ fs.writeFileSync(OUT, zip);
 console.log(`[E2EE] Package: ${OUT} (${zip.length} bytes)`);
 console.log("");
 console.log(
-    "To apply, update the files of this add-on in Vault-Sync's src/addons/approved-addons.ts:",
+    "To apply, update the files of this add-on in Vault Syncer's src/addons/approved-addons.ts:",
 );
 for (const [name, hash] of Object.entries(hashes)) {
     console.log(`    "${name}": "${hash}",`);

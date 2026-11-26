@@ -14,7 +14,7 @@ describe("new password policy", () => {
         expect(isPasswordAcceptable("fine-and-long-enough", checker)).toBe(true);
     });
 
-    it("works without a strength checker (older Vault-Sync)", () => {
+    it("works without a strength checker (older Vault Syncer)", () => {
         expect(isPasswordAcceptable("twelve chars")).toBe(true);
         expect(isPasswordAcceptable("short")).toBe(false);
     });
