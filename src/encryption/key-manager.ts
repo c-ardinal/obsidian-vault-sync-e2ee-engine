@@ -273,7 +273,7 @@ export class MasterKeyManager implements ICryptoEngine {
         new E2EERecoveryImportModal(ctx.app, ctx).open();
     }
 
-    /** Settings page and actions shown by Vault-Sync (see src/ui/contributions.ts). */
+    /** Settings page and actions shown by Vault Syncer (see src/ui/contributions.ts). */
     getUiContributions(ctx: E2EEPluginContext, host: AddonUiHost): AddonUiContributions {
         return buildUiContributions(this, ctx, host);
     }

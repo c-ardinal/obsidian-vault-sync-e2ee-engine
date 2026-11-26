@@ -156,16 +156,16 @@ export interface ICryptoEngine {
     showRecoveryImportModal(ctx: E2EEPluginContext): void;
     getSettingsSections(ctx: E2EEPluginContext): SettingSection[];
     /**
-     * This add-on's settings page and actions. Vault-Sync lists the page under
-     * Settings › Add-ons and registers the actions as commands. Vault-Sync
+     * This add-on's settings page and actions. Vault Syncer lists the page under
+     * Settings › Add-ons and registers the actions as commands. Vault Syncer
      * versions without add-on pages do not call it and keep using the methods above.
      */
     getUiContributions(ctx: E2EEPluginContext, host: AddonUiHost): AddonUiContributions;
-    /** Display text for a UI language ("en", "ja", ...). Vault-Sync's own dictionary has none of it. */
+    /** Display text for a UI language ("en", "ja", ...). Vault Syncer's own dictionary has none of it. */
     getStrings(lang: string): Record<string, string>;
 }
 
-// --- Add-on UI contract (copy of Vault-Sync's src/addons/addon-ui.ts) ---
+// --- Add-on UI contract (copy of Vault Syncer's src/addons/addon-ui.ts) ---
 
 /** One row on an add-on page. "action" runs actionId, "page" opens pageId. */
 export interface AddonSettingItem {

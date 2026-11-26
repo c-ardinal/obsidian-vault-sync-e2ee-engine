@@ -8,7 +8,7 @@ import type {
 } from "../interfaces";
 
 /**
- * This add-on's page under Vault-Sync's Settings › Add-ons, and its actions.
+ * This add-on's page under Vault Syncer's Settings › Add-ons, and its actions.
  *
  * The action ids are the command ids of earlier releases, so hotkeys users
  * bound to them keep working. Every action is also on the command palette.

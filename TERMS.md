@@ -1,15 +1,15 @@
-# Vault-Sync E2EE Engine: Additional Terms of Use
+# Vault Syncer E2EE Engine: Additional Terms of Use
 
 [ [🇺🇸 English](TERMS.md) | [🇯🇵 日本語](TERMS_ja.md) ]
 
-These Additional Terms ("Additional Terms") apply to the Vault-Sync E2EE Engine ("the Engine"), the optional end-to-end encryption add-on for Vault-Sync, developed by c-ardinal. They are an addendum to the [Vault-Sync Terms of Service](https://obsidian-vault-sync.pages.dev/tos/) ("Base Terms"). Where the two conflict for anything concerning the Engine, these Additional Terms take precedence.
+These Additional Terms ("Additional Terms") apply to the Vault Syncer E2EE Engine ("the Engine"), the optional end-to-end encryption add-on for Vault Syncer, developed by c-ardinal. They are an addendum to the [Vault Syncer Terms of Service](https://obsidian-vault-sync.pages.dev/tos/) ("Base Terms"). Where the two conflict for anything concerning the Engine, these Additional Terms take precedence.
 
-By installing the Engine (including by confirming these Additional Terms in Vault-Sync's install dialog), you agree to the Base Terms and to these Additional Terms. If you do not agree, do not install or use the Engine.
+By installing the Engine (including by confirming these Additional Terms in Vault Syncer's install dialog), you agree to the Base Terms and to these Additional Terms. If you do not agree, do not install or use the Engine.
 
 ## 1. What the Engine is
 
-- The Engine is free, open-source software released under the [MIT License](LICENSE). It encrypts vault data on your device before Vault-Sync uploads it and decrypts it after download.
-- The Engine is distributed separately from Vault-Sync. Vault-Sync does not download, install or enable the Engine on its own. You obtain it yourself from this repository's release page and choose to install it.
+- The Engine is free, open-source software released under the [MIT License](LICENSE). It encrypts vault data on your device before Vault Syncer uploads it and decrypts it after download.
+- The Engine is distributed separately from Vault Syncer. Vault Syncer does not download, install or enable the Engine on its own. You obtain it yourself from this repository's release page and choose to install it.
 
 ## 2. Your decision and responsibility
 
@@ -26,13 +26,13 @@ By installing the Engine (including by confirming these Additional Terms in Vaul
 
 - Your encryption password, recovery code and the `vault-lock.vault` file are under your control alone. The developer never receives them and cannot reset or recover them.
 - If you lose both your password and your recovery code, or lose the `vault-lock.vault` file, your encrypted data cannot be decrypted by anyone, including the developer.
-- Once E2EE is enabled for a vault, it cannot be turned off from within Vault-Sync. To stop using it you must follow the recovery procedure described in the README.
+- Once E2EE is enabled for a vault, it cannot be turned off from within Vault Syncer. To stop using it you must follow the recovery procedure described in the README.
 
 ## 5. Limits of the protection
 
 - No encryption is absolutely secure. The developer does not guarantee that the Engine is free of defects or vulnerabilities, or that encrypted data cannot be accessed by others.
 - The Engine does not protect data on a device that is compromised (for example by malware), unlocked and accessible to others, or while the vault is unlocked.
-- Information other than file contents, such as the number and size of files and when sync happens, may still be observable by your cloud storage provider.
+- Only file contents are encrypted. File and folder names and paths are not encrypted, and neither are the number and approximate size of files, their modification times, or when sync happens. This information is visible to your cloud storage provider and to anyone who can access your cloud storage. Do not put confidential information in file or folder names.
 
 ## 6. No warranty
 
@@ -55,4 +55,4 @@ The developer may modify these Additional Terms at any time. Updated terms will 
 
 For questions about these Additional Terms, please open an issue on this GitHub repository.
 
-Last updated: November 17, 2026
+Last updated: November 26, 2026

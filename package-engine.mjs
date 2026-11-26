@@ -16,11 +16,11 @@ const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
 // not in Vault Syncer.
 const manifest = {
     id: "vault-sync-e2ee-engine",
-    name: "Vault-Sync E2EE Engine",
+    name: "Vault Syncer E2EE Engine",
     version: pkg.version,
     description: {
-        en: "End-to-end encryption for Vault-Sync. Files are encrypted on your device before upload.",
-        ja: "Vault-Sync用のエンドツーエンド暗号化。ファイルはアップロード前にデバイス上で暗号化されます。",
+        en: "End-to-end encryption for Vault Syncer. Files are encrypted on your device before upload.",
+        ja: "Vault Syncer用のエンドツーエンド暗号化。ファイルはアップロード前にデバイス上で暗号化されます。",
     },
     entry: "e2ee-engine.js",
     terms: { en: "TERMS.md", ja: "TERMS_ja.md" },
