@@ -9,13 +9,13 @@ import fs from "fs";
 import crypto from "crypto";
 import { zipSync, strToU8 } from "fflate";
 
-const OUT = "./dist/vault-sync-e2ee-engine.zip";
+const OUT = "./dist/vault-syncer-e2ee-engine.zip";
 const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
 
 // Add-on manifest read by Vault Syncer. Display text for the add-on lives here,
 // not in Vault Syncer.
 const manifest = {
-    id: "vault-sync-e2ee-engine",
+    id: "vault-syncer-e2ee-engine",
     name: "Vault Syncer E2EE Engine",
     version: pkg.version,
     description: {

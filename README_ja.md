@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Vault Syncer](https://github.com/c-ardinal/obsidian-vault-sync) 専用の外部E2EEエンジンです。  
+[Vault Syncer](https://github.com/c-ardinal/obsidian-vault-syncer) 専用の外部E2EEエンジンです。  
 Vault Syncer がアップロードする Vault 内ファイルの内容を端末上で暗号化し、ダウンロード時にローカル上で復号します。  
 クラウド側でファイル内容を参照する手段はありません。ただし、ファイル名・フォルダ名・サイズ・更新日時は暗号化**対象外**です（[保護範囲](#-保護範囲) を参照）。
 
@@ -58,7 +58,7 @@ E2EE Engine のインストール後、Vault Syncer の **設定 → アドオ�
 ### Vault Syncerの設定画面から導入（推奨・スマートフォン対応）
 
 1. Vault Syncerの設定画面「アドオン」の **アドオンを導入...** をタップ（またはコマンドパレットから `Vault Syncer: アドオン導入画面を表示` を実行）
-2. **ダウンロードページへ移動** をタップし、最新リリースの `vault-sync-e2ee-engine.zip` をダウンロード
+2. **ダウンロードページへ移動** をタップし、最新リリースの `vault-syncer-e2ee-engine.zip` をダウンロード
     - zipにはエンジンと[追加利用条件](TERMS_ja.md)が同梱されています。最新以外のバージョンは、Vault Syncerが拒否するため使用不可能です。
 3. **ファイルを選択** でダウンロードしたzipを選択。Vault Syncerが検証し、追加利用条件を表示します
 4. 追加利用条件を確認して同意し、**導入する** をタップ。再起動不要で有効化されます
@@ -68,10 +68,10 @@ E2EE Engine のインストール後、Vault Syncer の **設定 → アドオ�
 
 ### 手動コピーで導入（上級者向け）
 
-1. [リリースページ](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases) から最新バージョンの `e2ee-engine.js` をダウンロード
+1. [リリースページ](https://github.com/c-ardinal/obsidian-vault-syncer-e2ee-engine/releases) から最新バージョンの `e2ee-engine.js` をダウンロード
 2. Vault Syncer のプラグインディレクトリに配置:
     ```
-    <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
+    <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/e2ee-engine.js
     ```
 3. Obsidian を再起動し、Vault Syncerの設定画面 **アドオン → セキュリティ (E2EE)**（またはコマンドパレット）から暗号化を開始
 
@@ -93,10 +93,10 @@ E2EE Engine のインストール後、Vault Syncer の **設定 → アドオ�
 
 3. `dist/e2ee-engine.js` をプラグインディレクトリにコピー:
     ```
-    <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
+    <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/e2ee-engine.js
     ```
 
-`npm run build` は `dist/vault-sync-e2ee-engine.zip`（Vault Syncerがインポートするアドオンパッケージ: マニフェスト `addon.json`・エンジン・利用条件）も出力し、Vault Syncerが固定している各ファイルのSHA-256ハッシュを表示します。エンジン・バージョン・`TERMS` ファイルのいずれかを変更した際は、新規ハッシュを反映したVault Syncerのリリースが必要です。
+`npm run build` は `dist/vault-syncer-e2ee-engine.zip`（Vault Syncerがインポートするアドオンパッケージ: マニフェスト `addon.json`・エンジン・利用条件）も出力し、Vault Syncerが固定している各ファイルのSHA-256ハッシュを表示します。エンジン・バージョン・`TERMS` ファイルのいずれかを変更した際は、新規ハッシュを反映したVault Syncerのリリースが必要です。
 
 ---
 
@@ -115,10 +115,8 @@ E2EE Engine のインストール後、Vault Syncer の **設定 → アドオ�
 このファイルはローカルには保管されず、クラウドストレージ上の以下の場所に格納されます。
 
 ```
-  <Your Vault>/.obsidian/plugins/cardinal-vault-sync/data/remote/vault-lock.vault
+  <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/data/remote/vault-lock.vault
 ```
-
-（プラグインID変更前に設定済みの Vault では、`obsidian-vault-sync/` 配下にも同一ファイルを保持します。）
 
 ### 🛡 保護範囲
 
@@ -181,7 +179,7 @@ E2EEを使用せずに本プラグインの使用を継続したい際は、 [#�
 
 注意: 以下の手順を実行すると、プラグインの設定やファイルの変更履歴など、**Vault Syncerプラグイン関連の全データが消失します**。
 
-1. Obsidian外の操作:ブラウザやクラウドストレージのアプリから、クラウドストレージ上のVaultフォルダ(デフォルト設定では、ObsidianVaultSync配下)を削除する。
+1. Obsidian外の操作:ブラウザやクラウドストレージのアプリから、クラウドストレージ上のVaultフォルダ(デフォルト設定では、ObsidianVaultSyncer配下)を削除する。
 2. Obsidianの設定 > コミュニティプラグイン > インストールされたプラグイン からVault Syncerをアンインストールする。
 3. Obsidianを再起動する
 4. Obsidianを起動し、設定 > コミュニティプラグイン > 閲覧 からVault Syncerを再インストールする。
