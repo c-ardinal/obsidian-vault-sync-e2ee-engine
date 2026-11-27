@@ -65,6 +65,19 @@ export class MasterKeyManager implements ICryptoEngine {
         }
     }
 
+    /**
+     * True when the password opens the lock file. Runs on a separate instance:
+     * a wrong password must not lock the vault that is open here.
+     */
+    async verifyPassword(encryptedBlob: string, password: string): Promise<boolean> {
+        try {
+            await new MasterKeyManager().unlockVault(encryptedBlob, password);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     /** v2: one salted PBKDF2-SHA512 run yields both the outer and the inner key. */
     private async unlockV2(blob: string, password: string): Promise<void> {
         try {
@@ -265,6 +278,7 @@ export class MasterKeyManager implements ICryptoEngine {
         new E2EEPasswordChangeModal(ctx.app, ctx).open();
     }
 
+    /** Asks for the password again before the code is shown. */
     showRecoveryExportModal(ctx: E2EEPluginContext): void {
         new E2EERecoveryExportModal(ctx.app, ctx).open();
     }

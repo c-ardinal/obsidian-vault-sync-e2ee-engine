@@ -9,6 +9,21 @@ import {
     renderStrengthIndicator,
 } from "./password-field";
 
+/**
+ * A line inside a dialog for the answer to what the user just did (wrong
+ * password, lock file unreadable). It does not depend on the plugin's notice
+ * settings, so a failure is never silent.
+ */
+function createErrorLine(container: HTMLElement): (text: string) => void {
+    const el = container.createDiv({ cls: "mod-warning" });
+    el.setAttribute("role", "alert");
+    el.style.display = "none";
+    return (text: string) => {
+        el.setText(text);
+        el.style.display = text ? "" : "none";
+    };
+}
+
 /** Set text content with \n → line breaks */
 function setTextWithBreaks(el: HTMLElement, text: string): void {
     el.empty();
@@ -221,6 +236,8 @@ export class E2EESetupModal extends Modal {
                         await this.ctx.notify("noticeMigrationComplete");
                         this.close();
                         this.ctx.refreshSettingsUI?.();
+                        // The one time the code is shown without asking for the password again
+                        new E2EERecoveryExportModal(this.app, this.ctx, "after-setup").open();
                     } catch (e: unknown) {
                         const closeBtn = this.modalEl.querySelector(
                             ".modal-close-button",
@@ -328,6 +345,7 @@ export class E2EEUnlockModal extends Modal {
 
         // ASCII-only warning (hidden by default)
         this.showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
+        const showError = createErrorLine(contentEl);
         new Setting(contentEl)
             .setName(this.ctx.t("e2eeUnlockAutoUnlock"))
             .addToggle((toggle) => {
@@ -339,9 +357,17 @@ export class E2EEUnlockModal extends Modal {
                 .setButtonText(this.ctx.t("e2eeUnlockButton"))
                 .setCta()
                 .onClick(async () => {
+                    showError("");
+                    let blob: string;
                     try {
-                        const blob =
-                            await this.ctx.vaultLockService.downloadLockFile();
+                        blob = await this.ctx.vaultLockService.downloadLockFile();
+                    } catch (e) {
+                        // The lock file could not be read (offline): the password was not checked
+                        showError(`${this.ctx.t("e2eeRecoveryVerifyError")} ${formatError(e)}`);
+                        console.error(e);
+                        return;
+                    }
+                    try {
                         const hashedPassword = await hashPassword(this.password);
                         await this.ctx.cryptoEngine.unlockVault(
                             blob,
@@ -389,6 +415,7 @@ export class E2EEUnlockModal extends Modal {
                         this.close();
                         this.ctx.refreshSettingsUI?.();
                     } catch (e) {
+                        showError(this.ctx.t("e2eeUnlockFailed"));
                         await this.ctx.notify("e2eeUnlockFailed");
                         console.error(e);
                     }
@@ -507,20 +534,100 @@ export class E2EEPasswordChangeModal extends Modal {
 
 /**
  * Recovery Code Export Modal
+ *
+ * The code is the vault's key itself, so it is shown in two cases only: right
+ * after setup (the password was just entered), and after the password is
+ * entered again. An unlocked vault alone is not enough: with auto-unlock on,
+ * anyone at the device could otherwise read it.
  */
 export class E2EERecoveryExportModal extends Modal {
+    private password = "";
+
     constructor(
         app: App,
         private ctx: E2EEPluginContext,
+        private mode: "verify" | "after-setup" = "verify",
     ) {
         super(app);
     }
 
     async onOpen() {
+        if (this.mode === "after-setup") await this.showCode();
+        else this.askPassword();
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+
+    private renderHeader(descKey: string): void {
         const { contentEl } = this;
         contentEl.empty();
         contentEl.createEl("h2", { text: this.ctx.t("e2eeRecoveryExportTitle") });
-        contentEl.createEl("p", { text: this.ctx.t("e2eeRecoveryExportDesc") });
+        contentEl.createEl("p", { text: this.ctx.t(descKey) });
+    }
+
+    private askPassword(): void {
+        const { contentEl } = this;
+        this.renderHeader("e2eeRecoveryVerifyDesc");
+        let showAsciiWarning: ((visible: boolean) => void) | undefined;
+        const input = addPasswordInput({
+            container: contentEl,
+            t: (k) => this.ctx.t(k),
+            label: this.ctx.t("e2eeUnlockPasswordLabel"),
+            autocomplete: "current-password",
+            onPasswordChange: (pw) => {
+                this.password = pw;
+            },
+            onAsciiViolation: (violated) => showAsciiWarning?.(violated),
+        });
+        showAsciiWarning = createAsciiWarning(contentEl, (k) => this.ctx.t(k));
+        const showError = createErrorLine(contentEl);
+
+        let busy = false;
+        const confirm = async (btn: ButtonComponent) => {
+            if (busy || !this.password) return;
+            busy = true;
+            btn.setDisabled(true);
+            showError("");
+            try {
+                const blob = await this.ctx.vaultLockService.downloadLockFile();
+                const ok = await this.ctx.cryptoEngine.verifyPassword(
+                    blob,
+                    await hashPassword(this.password),
+                );
+                if (!ok) {
+                    showError(this.ctx.t("e2eeUnlockFailed"));
+                    await this.ctx.notify("e2eeUnlockFailed");
+                    return;
+                }
+                this.password = "";
+                await this.showCode();
+            } catch (e) {
+                // The lock file could not be read (offline): the password was not checked
+                const message = `${this.ctx.t("e2eeRecoveryVerifyError")} ${formatError(e)}`;
+                showError(message);
+                new Notice(message);
+            } finally {
+                busy = false;
+                btn.setDisabled(false);
+            }
+        };
+        new Setting(contentEl).addButton((btn) => {
+            btn.setButtonText(this.ctx.t("e2eeRecoveryVerifyButton"))
+                .setCta()
+                .onClick(() => confirm(btn));
+            input.addEventListener("keydown", (ev) => {
+                if (ev.key === "Enter" && !ev.isComposing) void confirm(btn);
+            });
+        });
+    }
+
+    private async showCode(): Promise<void> {
+        const { contentEl } = this;
+        this.renderHeader(
+            this.mode === "after-setup" ? "e2eeRecoverySetupDesc" : "e2eeRecoveryExportDesc",
+        );
 
         // Warning banner
         const warningEl = contentEl.createDiv({ cls: "vault-syncer-recovery-warning" });
