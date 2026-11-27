@@ -68,7 +68,7 @@ export function createAsciiWarning(
     container: HTMLElement,
     t: (key: string) => string,
 ): (visible: boolean) => void {
-    const el = container.createDiv({ cls: "vault-sync-ascii-warning" });
+    const el = container.createDiv({ cls: "vault-syncer-ascii-warning" });
     el.style.cssText =
         "color:var(--text-error);font-size:0.85em;display:none;margin-top:-8px;margin-bottom:8px;";
     el.setText(t("e2eeSetupAsciiOnly"));
@@ -95,7 +95,7 @@ export function renderStrengthIndicator(
 
     // Strength bar
     const barContainer = container.createDiv({
-        cls: "vault-sync-strength-bar-container",
+        cls: "vault-syncer-strength-bar-container",
     });
     barContainer.style.cssText = "display:flex;gap:4px;margin-bottom:4px;";
 

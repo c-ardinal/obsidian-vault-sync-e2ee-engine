@@ -136,7 +136,7 @@ describe("setup dialog", () => {
         m.open();
         await flush();
         const input = parts(m).passwords()[0];
-        const warning = m.contentEl.querySelector(".vault-sync-ascii-warning") as HTMLElement;
+        const warning = m.contentEl.querySelector(".vault-syncer-ascii-warning") as HTMLElement;
 
         await type(input, "pässwörd-long-enough");
         expect(input.value).toBe("psswrd-long-enough");
