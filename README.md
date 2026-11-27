@@ -40,7 +40,7 @@ The same operations are also commands in Obsidian's command palette (command ids
 | E2EE: Start Vault Encryption           | Initialize E2EE on a non-encrypted vault    |
 | E2EE: Unlock Vault                     | Unlock a locked vault with your password    |
 | E2EE: Change Encryption Password       | Re-wrap master key with a new password      |
-| E2EE: Show Recovery Code               | Display a recovery code and key fingerprint |
+| E2EE: Show Recovery Code               | Display the recovery code and key fingerprint after the password is entered again |
 | E2EE: Recover Vault with Recovery Code | Restore vault access using a recovery code  |
 
 ---
