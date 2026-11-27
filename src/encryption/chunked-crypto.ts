@@ -1,11 +1,11 @@
 import { DecryptionError } from "./errors";
 
-/** VSC2 magic bytes: "VSC2" (Vault-Sync Chunked v2) */
+/** VSC2 magic bytes: "VSC2" (Vault Syncer Chunked v2) */
 export const CHUNK_MAGIC = new Uint8Array([0x56, 0x53, 0x43, 0x32]);
 
 export const HEADER_SIZE = 12; // magic(4) + chunkSize(4) + totalChunks(4)
 
-/** VSC3 magic bytes: "VSC3" (Vault-Sync Chunked v3, chunks bound to their position) */
+/** VSC3 magic bytes: "VSC3" (Vault Syncer Chunked v3, chunks bound to their position) */
 export const CHUNK_MAGIC_V3 = new Uint8Array([0x56, 0x53, 0x43, 0x33]);
 
 /** Random per-file id in the VSC3 header, so chunks cannot be moved between files. */
