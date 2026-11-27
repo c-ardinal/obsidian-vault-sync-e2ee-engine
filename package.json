@@ -1,5 +1,5 @@
 {
-    "name": "vaultsync-e2ee-engine",
+    "name": "obsidian-vault-syncer-e2ee-engine",
     "version": "0.19.0",
     "description": "Encryption engine for Vault Syncer (External Add-on)",
     "type": "module",
