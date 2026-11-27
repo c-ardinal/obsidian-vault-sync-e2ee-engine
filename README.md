@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An external End-to-End Encryption engine for [Vault Syncer](https://github.com/c-ardinal/obsidian-vault-sync).
+An external End-to-End Encryption engine for [Vault Syncer](https://github.com/c-ardinal/obsidian-vault-syncer).
 When installed, the contents of your vault files are encrypted on your device before upload and decrypted locally after download.
 Your cloud provider cannot read file contents. File and folder names, sizes and modification times are **not** encrypted: see [What is and isn't protected](#-what-is-and-isnt-protected).
 
@@ -58,7 +58,7 @@ Note: Once E2EE is enabled, it cannot be disabled. If you wish to continue using
 ### From Vault Syncer settings (recommended, works on mobile)
 
 1. In Vault Syncer's settings, tap **Install add-on...** under "Add-ons" (or run `Vault Syncer: Show add-on install` from the command palette)
-2. Tap **Open download page** and download `vault-sync-e2ee-engine.zip` from the latest release
+2. Tap **Open download page** and download `vault-syncer-e2ee-engine.zip` from the latest release
     - The zip contains the engine and its [Additional Terms of Use](TERMS.md). Only the latest version can be used; Vault Syncer rejects other versions.
 3. Tap **Choose file** and pick the downloaded zip. Vault Syncer verifies it and shows the Additional Terms
 4. Read and agree to the terms, then tap **Install**. The engine is activated without a restart
@@ -68,10 +68,10 @@ On a device whose vault is already encrypted from another device, the install di
 
 ### Manual copy (advanced)
 
-1. Download the latest `e2ee-engine.js` from the [Releases page](https://github.com/c-ardinal/obsidian-vault-sync-e2ee-engine/releases)
+1. Download the latest `e2ee-engine.js` from the [Releases page](https://github.com/c-ardinal/obsidian-vault-syncer-e2ee-engine/releases)
 2. Place it in your Vault Syncer plugin directory:
     ```
-    <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
+    <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/e2ee-engine.js
     ```
 3. Restart Obsidian, then start encryption from **Add-ons → Security (E2EE)** in Vault Syncer's settings (or the command palette)
 
@@ -93,10 +93,10 @@ Installing by hand also means you agree to the [Additional Terms of Use](TERMS.m
 
 3. Copy `dist/e2ee-engine.js` to your plugin directory:
     ```
-    <Your Vault>/.obsidian/plugins/cardinal-vault-sync/e2ee-engine.js
+    <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/e2ee-engine.js
     ```
 
-`npm run build` also writes `dist/vault-sync-e2ee-engine.zip`, the add-on package Vault Syncer imports (`addon.json` manifest, engine, terms), and prints the SHA-256 hash Vault Syncer pins for each file. Changing the engine, the version or either `TERMS` file needs a Vault Syncer release with the new hashes.
+`npm run build` also writes `dist/vault-syncer-e2ee-engine.zip`, the add-on package Vault Syncer imports (`addon.json` manifest, engine, terms), and prints the SHA-256 hash Vault Syncer pins for each file. Changing the engine, the version or either `TERMS` file needs a Vault Syncer release with the new hashes.
 
 ---
 
@@ -115,10 +115,10 @@ This file is required to unlock the vault. Without it and your password, data ca
 The file is not stored locally — it is located on cloud storage at:
 
 ```
-  <Your Vault>/.obsidian/plugins/cardinal-vault-sync/data/remote/vault-lock.vault
+  <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/data/remote/vault-lock.vault
 ```
 
-(Vaults set up before the plugin ID change also keep a copy under `obsidian-vault-sync/`.)
+(Vaults set up before the plugin ID changes also keep copies under `cardinal-vault-sync/` and `obsidian-vault-sync/`.)
 
 ### 🛡 What is and isn't protected
 
