@@ -60,7 +60,7 @@ export class E2EESetupModal extends Modal {
         if (migrationService && migrationService.isMigrating) {
             contentEl.createEl("div", {
                 text: this.ctx.t("e2eeSetupMigratingBg"),
-                cls: "vault-sync-warning",
+                cls: "vault-syncer-warning",
             });
             const p = migrationService.currentProgress;
             if (p) {
@@ -99,15 +99,15 @@ export class E2EESetupModal extends Modal {
         addPasswordRuleHint(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
-        this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
+        this.strengthIndicator = contentEl.createDiv({ cls: "vault-syncer-password-strength" });
 
         // Progress UI (initially hidden)
-        const mgContainer = contentEl.createDiv({ cls: "vault-sync-migration-container" });
-        const barWrapper = mgContainer.createDiv({ cls: "vault-sync-progress-wrapper" });
-        this.progressBar = barWrapper.createDiv({ cls: "vault-sync-progress-bar" });
-        this.statusText = mgContainer.createDiv({ cls: "vault-sync-migration-status" });
-        this.fileText = mgContainer.createDiv({ cls: "vault-sync-migration-file" });
-        this.statsText = mgContainer.createDiv({ cls: "vault-sync-migration-status" });
+        const mgContainer = contentEl.createDiv({ cls: "vault-syncer-migration-container" });
+        const barWrapper = mgContainer.createDiv({ cls: "vault-syncer-progress-wrapper" });
+        this.progressBar = barWrapper.createDiv({ cls: "vault-syncer-progress-bar" });
+        this.statusText = mgContainer.createDiv({ cls: "vault-syncer-migration-status" });
+        this.fileText = mgContainer.createDiv({ cls: "vault-syncer-migration-file" });
+        this.statsText = mgContainer.createDiv({ cls: "vault-syncer-migration-status" });
         mgContainer.hide();
 
         // Start Migration button (disabled until the password meets the policy)
@@ -265,7 +265,7 @@ export class E2EESetupModal extends Modal {
             contentEl.empty();
             contentEl.createEl("h2", { text: this.ctx.t("e2eeInterruptedTitle") });
 
-            const desc = contentEl.createEl("div", { cls: "vault-sync-warning" });
+            const desc = contentEl.createEl("div", { cls: "vault-syncer-warning" });
             setTextWithBreaks(desc, this.ctx.t("e2eeInterruptedDesc"));
 
             new Setting(contentEl)
@@ -447,7 +447,7 @@ export class E2EEPasswordChangeModal extends Modal {
         addPasswordRuleHint(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
-        this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
+        this.strengthIndicator = contentEl.createDiv({ cls: "vault-syncer-password-strength" });
 
         // Confirm password
         new Setting(contentEl)
@@ -523,7 +523,7 @@ export class E2EERecoveryExportModal extends Modal {
         contentEl.createEl("p", { text: this.ctx.t("e2eeRecoveryExportDesc") });
 
         // Warning banner
-        const warningEl = contentEl.createDiv({ cls: "vault-sync-recovery-warning" });
+        const warningEl = contentEl.createDiv({ cls: "vault-syncer-recovery-warning" });
         warningEl.style.cssText = "background:var(--background-modifier-error);padding:8px 12px;border-radius:4px;margin-bottom:12px;";
         warningEl.setText(this.ctx.t("e2eeRecoveryWarning"));
 
@@ -620,7 +620,7 @@ export class E2EERecoveryImportModal extends Modal {
         addPasswordRuleHint(contentEl, (k) => this.ctx.t(k));
 
         // Password strength indicator
-        this.strengthIndicator = contentEl.createDiv({ cls: "vault-sync-password-strength" });
+        this.strengthIndicator = contentEl.createDiv({ cls: "vault-syncer-password-strength" });
 
         // Confirm password
         new Setting(contentEl)

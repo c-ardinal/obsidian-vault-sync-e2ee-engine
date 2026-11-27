@@ -118,8 +118,6 @@ The file is not stored locally — it is located on cloud storage at:
   <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/data/remote/vault-lock.vault
 ```
 
-(Vaults set up before the plugin ID changes also keep copies under `cardinal-vault-sync/` and `obsidian-vault-sync/`.)
-
 ### 🛡 What is and isn't protected
 
 - **Encrypted**: the contents of every synced file, and Vault Syncer's index (file list and hashes).
@@ -181,7 +179,7 @@ If you wish to continue using this plugin without E2EE, follow the [Recovery Pro
 
 Note: Performing the following steps will result in the **loss of all Vault Syncer plugin-related data**, including plugin settings and file revision history.
 
-1. Outside of Obsidian: Using a browser or cloud storage app, delete the Vault folder on cloud storage (under `ObsidianVaultSync` by default).
+1. Outside of Obsidian: Using a browser or cloud storage app, delete the Vault folder on cloud storage (under `ObsidianVaultSyncer` by default).
 2. In Obsidian, go to Settings > Community Plugins > Installed Plugins and uninstall Vault Syncer.
 3. Restart Obsidian.
 4. In Obsidian, go to Settings > Community Plugins > Browse and reinstall Vault Syncer.

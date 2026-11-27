@@ -118,8 +118,6 @@ E2EE Engine のインストール後、Vault Syncer の **設定 → アドオ�
   <Your Vault>/.obsidian/plugins/cardinal-vault-syncer/data/remote/vault-lock.vault
 ```
 
-（プラグインID変更前に設定済みの Vault では、`cardinal-vault-sync/` および `obsidian-vault-sync/` 配下にも同一ファイルを保持します。）
-
 ### 🛡 保護範囲
 
 - **暗号化対象**: 同期対象の全ファイルの内容、および Vault Syncer のインデックス（ファイル一覧とハッシュ値）。
@@ -181,7 +179,7 @@ E2EEを使用せずに本プラグインの使用を継続したい際は、 [#�
 
 注意: 以下の手順を実行すると、プラグインの設定やファイルの変更履歴など、**Vault Syncerプラグイン関連の全データが消失します**。
 
-1. Obsidian外の操作:ブラウザやクラウドストレージのアプリから、クラウドストレージ上のVaultフォルダ(デフォルト設定では、ObsidianVaultSync配下)を削除する。
+1. Obsidian外の操作:ブラウザやクラウドストレージのアプリから、クラウドストレージ上のVaultフォルダ(デフォルト設定では、ObsidianVaultSyncer配下)を削除する。
 2. Obsidianの設定 > コミュニティプラグイン > インストールされたプラグイン からVault Syncerをアンインストールする。
 3. Obsidianを再起動する
 4. Obsidianを起動し、設定 > コミュニティプラグイン > 閲覧 からVault Syncerを再インストールする。

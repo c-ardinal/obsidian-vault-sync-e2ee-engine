@@ -1,6 +1,6 @@
 $DEST_PATHS = @(
-    "C:\_Workspace\obsidian\PluginTest\.obsidian\plugins\obsidian-vault-sync",
-    "C:\_Workspace\obsidian\Dreamlands\.obsidian\plugins\obsidian-vault-sync"
+    "C:\_Workspace\obsidian\PluginTest\.obsidian\plugins\cardinal-vault-syncer",
+    "C:\_Workspace\obsidian\Dreamlands\.obsidian\plugins\cardinal-vault-syncer"
 )
 
 Write-Host "=== STARTING TESTS ===" -ForegroundColor Cyan
