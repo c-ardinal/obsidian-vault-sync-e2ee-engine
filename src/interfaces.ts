@@ -143,6 +143,9 @@ export interface ICryptoEngine {
         header: Uint8Array;
     }>;
 
+    /** Whether the (hashed) password opens the lock file; the engine's own state is untouched. */
+    verifyPassword(encryptedBlob: string, password: string): Promise<boolean>;
+
     // Recovery
     exportRecoveryCode(): Promise<string>;
     recoverFromCode(recoveryCode: string, newPassword: string): Promise<string>;
