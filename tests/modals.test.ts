@@ -63,6 +63,7 @@ function makeCtx(over: { autoUnlock?: boolean; interrupted?: boolean } = {}) {
             needsLockMigration: vi.fn(() => false),
             updatePassword: vi.fn(async (pw: string) => `lock-for:${pw}`),
             recoverFromCode: vi.fn(async (code: string, pw: string) => `recovered:${code}:${pw}`),
+            verifyPassword: vi.fn(async (_blob: string, pw: string) => pw === unlockWith),
             exportRecoveryCode: vi.fn(async () => "A".repeat(43) + "="),
             getKeyFingerprint: vi.fn(async () => "ab:cd:ef"),
         },
@@ -213,7 +214,29 @@ describe("unlock dialog", () => {
         await press(button("e2eeUnlockButton"));
 
         expect(notices).toEqual(["e2eeUnlockFailed"]);
+        // Said inside the dialog too: the plugin's notice settings may hide notices
+        expect(m.contentEl.textContent).toContain(t("e2eeUnlockFailed"));
         expect(m.isOpen).toBe(true);
+    });
+
+    it("says so when the lock file cannot be read, without blaming the password", async () => {
+        const { ctx, raw, acceptPassword } = makeCtx();
+        await acceptPassword(GOOD);
+        raw.vaultLockService.downloadLockFile.mockRejectedValueOnce(new Error("offline"));
+        const m = new E2EEUnlockModal(ctx.app, ctx);
+        m.open();
+        const { button, passwords } = parts(m);
+        await type(passwords()[0], GOOD);
+        await press(button("e2eeUnlockButton"));
+
+        expect(m.contentEl.textContent).toContain(t("e2eeRecoveryVerifyError"));
+        expect(m.contentEl.textContent).not.toContain(t("e2eeUnlockFailed"));
+        expect(raw.cryptoEngine.unlockVault).not.toHaveBeenCalled();
+        expect(m.isOpen).toBe(true);
+
+        // The next try works, and the message is gone
+        await press(button("e2eeUnlockButton"));
+        expect(m.isOpen).toBe(false);
     });
 
     it("unlocks with the hashed password and saves it only with auto-unlock on", async () => {
@@ -325,21 +348,64 @@ describe("recovery dialogs", () => {
         expect(m.isOpen).toBe(false);
     });
 
-    it("shows the code and fingerprint, and copies the code", async () => {
-        const { ctx } = makeCtx();
+    it("shows the code only after the password is entered again", async () => {
+        const { ctx, raw, notices, acceptPassword } = makeCtx();
+        await acceptPassword(GOOD);
         const writeText = vi.fn(async () => {});
         Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
         const m = new E2EERecoveryExportModal(ctx.app, ctx);
         m.open();
         await flush();
-        const { el, button } = parts(m);
+        const { el, button, passwords } = parts(m);
 
+        expect(el.querySelector("textarea")).toBeNull();
+        expect(raw.cryptoEngine.exportRecoveryCode).not.toHaveBeenCalled();
+
+        await type(passwords()[0], "a wrong password");
+        await press(button("e2eeRecoveryVerifyButton"));
+        expect(notices).toEqual(["e2eeUnlockFailed"]);
+        expect(el.querySelector("textarea")).toBeNull();
+        expect(raw.cryptoEngine.exportRecoveryCode).not.toHaveBeenCalled();
+        // Checking the password must not go through unlock: a wrong one would lock the vault
+        expect(raw.cryptoEngine.unlockVault).not.toHaveBeenCalled();
+
+        await type(passwords()[0], GOOD);
+        await press(button("e2eeRecoveryVerifyButton"));
         expect(el.querySelector("textarea")!.value).toBe(CODE);
         expect(el.querySelector("textarea")!.readOnly).toBe(true);
         expect(el.textContent).toContain("ab:cd:ef");
+        expect(passwords()).toEqual([]);
         await press(button("e2eeRecoveryCopy"));
         expect(writeText).toHaveBeenCalledWith(CODE);
         await press(button("e2eeRecoveryClose"));
         expect(m.isOpen).toBe(false);
+    });
+
+    it("does not show the code when the password cannot be checked", async () => {
+        const { ctx, raw, acceptPassword } = makeCtx();
+        await acceptPassword(GOOD);
+        raw.vaultLockService.downloadLockFile.mockRejectedValueOnce(new Error("offline"));
+        const m = new E2EERecoveryExportModal(ctx.app, ctx);
+        m.open();
+        await flush();
+        const { el, button, passwords } = parts(m);
+        await type(passwords()[0], GOOD);
+        await press(button("e2eeRecoveryVerifyButton"));
+
+        expect(el.querySelector("textarea")).toBeNull();
+        expect(Notice.shown).toEqual([`${t("e2eeRecoveryVerifyError")} offline`]);
+        expect(m.isOpen).toBe(true);
+    });
+
+    it("shows the code once right after setup, without asking again", async () => {
+        const { ctx } = makeCtx();
+        const m = new E2EERecoveryExportModal(ctx.app, ctx, "after-setup");
+        m.open();
+        await flush();
+        const { el, passwords } = parts(m);
+
+        expect(passwords()).toEqual([]);
+        expect(el.querySelector("textarea")!.value).toBe(CODE);
+        expect(el.textContent).toContain(t("e2eeRecoverySetupDesc"));
     });
 });
